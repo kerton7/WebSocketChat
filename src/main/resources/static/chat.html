@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Chat App — Room</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root{
+            --bg:#0b1220; --panel:#071022; --card:#0f1724; --muted:#9aa4b2; --accent:#6b8cff; --accent-2:#6ee7b7;
+            --danger:#ff6b6b; --success:#27ae60;
+        }
+        html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto;}
+        body{background:linear-gradient(180deg,#05060a 0%, #071122 60%);color:#e6eef6}
+        .app{display:flex;height:100vh;gap:18px;padding:18px;box-sizing:border-box}
+        .left{width:260px;background:var(--panel);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:12px;box-shadow:0 6px 30px rgba(0,0,0,0.6);}
+        .logo{font-weight:700;color:var(--accent);display:flex;align-items:center;gap:8px}
+        .search{display:flex;gap:8px}
+        .search input{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit}
+        .userList{overflow:auto;flex:1;padding-right:6px}
+        .userRow{display:flex;align-items:center;justify-content:space-between;padding:8px;border-radius:8px;cursor:pointer}
+        .userRow:hover{background:rgba(255,255,255,0.02)}
+        .username{font-weight:600}
+        .status{font-size:12px;color:var(--muted)}
+        .center{flex:1;display:flex;flex-direction:column;gap:12px}
+        .center .top{display:flex;justify-content:space-between;align-items:center}
+        .messages{background:var(--card);border-radius:12px;padding:14px;height:calc(100vh - 240px);overflow:auto;box-shadow:inset 0 1px 0 rgba(255,255,255,0.02)}
+        .msgRow{display:flex;gap:10px;margin-bottom:12px}
+        .msgBubble{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:10px 12px;border-radius:10px;max-width:70%}
+        .msgMeta{font-size:12px;color:var(--muted);margin-bottom:6px}
+        .compose{display:flex;gap:8px;margin-top:8px;align-items:center}
+        .compose input{flex:1;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit}
+        .compose button{padding:10px 14px;border-radius:10px;border:none;background:var(--accent);color:#041029;font-weight:700;cursor:pointer}
+        .right{width:360px;display:flex;flex-direction:column;gap:12px}
+        .dmCard, .adminCard{background:var(--panel);padding:12px;border-radius:12px;box-shadow:0 6px 30px rgba(0,0,0,0.5)}
+        .dmHeader{display:flex;justify-content:space-between;align-items:center}
+        .dmList{max-height:220px;overflow:auto;margin-top:8px}
+        .dmConv{background:var(--card);padding:10px;border-radius:10px;height:220px;overflow:auto}
+        .dmCompose{display:flex;gap:8px;margin-top:8px}
+        .dmCompose input{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit}
+        .dmCompose button{padding:8px 10px;border-radius:8px;border:none;background:var(--accent-2);color:#041029;font-weight:700;cursor:pointer}
+        .adminCard table{width:100%;border-collapse:collapse}
+        .adminCard th, .adminCard td{padding:6px;border:1px solid rgba(255,255,255,0.03);text-align:center;font-size:13px}
+        .pill{padding:4px 8px;border-radius:999px;background:rgba(255,255,255,0.02);font-size:12px;color:var(--muted)}
+        .topActions{display:flex;gap:8px;align-items:center}
+        .iconBtn{background:transparent;border:1px solid rgba(255,255,255,0.03);padding:8px;border-radius:8px;color:var(--muted);cursor:pointer}
+        @media (max-width:980px){ .right{display:none} .left{display:none} .center{flex:1 1 auto} .app{padding:8px} .messages{height:60vh} }
+    </style>
+</head>
+<body>
+<div class="app">
+    <div class="left">
+        <div class="logo">🔥 <span style="margin-left:6px">Chatter</span></div>
+        <div class="search">
+            <input id="searchUsers" placeholder="Search users...">
+            <button class="iconBtn" onclick="refreshUsers()">⟳</button>
+        </div>
+        <div class="userList" id="userList"></div>
+        <div style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px">Signed in as <strong id="meLabel"></strong></div>
+    </div>
+
+    <div class="center">
+        <div class="top">
+            <div>
+                <h2 style="margin:0">Public Chat</h2>
+                <div style="color:var(--muted);font-size:13px">General room — everyone can join</div>
+            </div>
+            <div class="topActions">
+                <button class="iconBtn" id="darkToggle">Dark</button>
+                <button class="iconBtn" onclick="openAdmin()" id="adminToggle" style="display:none">Admin</button>
+            </div>
+        </div>
+
+        <div class="messages" id="messages"></div>
+
+        <div class="compose">
+            <input id="msgInput" placeholder="Write a message..." onkeydown="if(event.key==='Enter') sendPublic()">
+            <button onclick="sendPublic()">Send</button>
+        </div>
+    </div>
+
+    <div class="right">
+        <div class="dmCard">
+            <div class="dmHeader">
+                <div><strong>Direct Messages</strong><div style="font-size:12px;color:var(--muted)">Click a user to open DM</div></div>
+                <div class="pill" id="dmStatus">No DM</div>
+            </div>
+            <div class="dmList" id="dmList"></div>
+
+            <div style="height:8px"></div>
+            <div class="dmConv" id="dmConv">Select a user to start private chat</div>
+
+            <div class="dmCompose">
+                <input id="dmInput" placeholder="Message to user...">
+                <button id="dmSendBtn">Send</button>
+            </div>
+        </div>
+
+        <div class="adminCard" id="adminCard" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+                <strong>Admin Panel</strong>
+                <div style="font-size:12px;color:var(--muted)">Manage users</div>
+            </div>
+            <div style="margin-top:8px">
+                <button onclick="loadUsers()">Refresh</button>
+            </div>
+            <div style="margin-top:8px;overflow:auto;max-height:260px">
+                <table id="adminTable">
+                    <thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Verified</th><th>Banned</th><th>Actions</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+<script>
+    const token = sessionStorage.getItem('token');
+    const me = sessionStorage.getItem('username');
+    const role = sessionStorage.getItem('role') || 'ROLE_USER';
+    const banned = sessionStorage.getItem('banned') === 'true';
+    if(!token || !me){ alert('Login first'); location.href='index.html' }
+    if(banned){ alert('You are banned!'); location.href='index.html' }
+    document.getElementById('meLabel').innerText = me;
+    if(role === 'ROLE_ADMIN'){ document.getElementById('adminToggle').style.display='inline-block'; document.getElementById('adminCard').style.display='block' }
+
+    let stompClient = null;
+    const usersCache = {};
+    let activeDMUser = null;
+
+    function connectWS(){
+        const sock = new SockJS('/ws');
+        stompClient = Stomp.over(sock);
+        stompClient.connect(
+            { Authorization: 'Bearer ' + token },
+            frame => {
+                console.log('WS Connected', frame);
+                subscribeChannels();
+                stompClient.send('/app/chat.addUser', {}, JSON.stringify({ sender: me, messageType: 'JOIN' }));
+            },
+            err => console.error('WS error', err)
+        );
+    }
+
+    function subscribeChannels(){
+        stompClient.subscribe('/topic/public', msg => { appendPublicMessage(JSON.parse(msg.body)); });
+        stompClient.subscribe('/user/queue/private', msg => { appendDMMessage(JSON.parse(msg.body)); });
+    }
+
+    connectWS();
+
+    function el(tag,cls,txt){ const e=document.createElement(tag); if(cls) e.className=cls; if(txt!==undefined) e.innerText=txt; return e; }
+
+    function appendPublicMessage(m){
+        const box = document.getElementById('messages');
+        const row = el('div','msgRow');
+        const bubble = el('div','msgBubble');
+        const meta = el('div','msgMeta', (m.sender || 'system') );
+        bubble.innerHTML = `<div style="font-size:14px">${escapeHtml(m.content)}</div>`;
+        row.appendChild(meta);
+        row.appendChild(bubble);
+        box.appendChild(row);
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function appendDMMessage(m){
+        const isMine = m.sender === me;
+        const conv = document.getElementById('dmConv');
+
+        if(!activeDMUser){
+            document.getElementById('dmStatus').innerText = 'New DM from ' + m.sender;
+            return;
+        }
+
+        if(activeDMUser === m.sender || activeDMUser === m.receiver || isMine){
+            const b = el('div','msgBubble');
+            b.style.marginBottom='8px';
+            b.style.background = isMine ? 'linear-gradient(90deg,#3dd9b6,#6b8cff)' : 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))';
+            b.innerHTML = `<div style="font-size:13px"><strong>${escapeHtml(m.sender)}</strong></div><div>${escapeHtml(m.content)}</div>`;
+            conv.appendChild(b);
+            conv.scrollTop = conv.scrollHeight;
+        } else {
+            document.getElementById('dmStatus').innerText = 'New DM from ' + m.sender;
+        }
+    }
+
+    function sendPublic(){
+        const input = document.getElementById('msgInput');
+        const text = input.value.trim();
+        if(!text) return;
+        stompClient.send('/app/chat.sendMessage', {}, JSON.stringify({ sender: me, content: text, messageType: 'CHAT' }));
+        input.value = '';
+    }
+
+    async function refreshUsers(){
+        try{
+            const res = await fetch('/auth/admin/users', { headers:{ 'Authorization': 'Bearer '+token }});
+            if(!res.ok) throw new Error('failed');
+            const arr = await res.json();
+            buildUserList(arr);
+            buildAdminTable(arr);
+        }catch(e){ console.warn(e); }
+    }
+
+    function buildUserList(arr){
+        const ul = document.getElementById('userList');
+        ul.innerHTML = '';
+        arr.forEach(u=>{
+            usersCache[u.username]=u;
+            if(u.username===me) return;
+            const row = el('div','userRow');
+            const left = el('div');
+            left.innerHTML = `<div class="username">${escapeHtml(u.username)}</div><div class="status">${u.verified? 'Verified' : 'Unverified'} • ${u.banned? 'Banned' : 'Active'}</div>`;
+            row.appendChild(left);
+            const actions = el('div');
+            const dmBtn = el('button','iconBtn','DM');
+            dmBtn.onclick = ()=> openDM(u.username);
+            actions.appendChild(dmBtn);
+            row.appendChild(actions);
+            ul.appendChild(row);
+        });
+    }
+
+    async function openDM(username){
+        activeDMUser = username;
+        document.getElementById('dmStatus').innerText = 'DM: '+username;
+        document.getElementById('dmConv').innerHTML = '<div style="color:var(--muted)">Loading...</div>';
+        try{
+            const res = await fetch('/dm/'+encodeURIComponent(username), { headers:{ 'Authorization': 'Bearer '+token }});
+            const msgs = await res.json();
+            const conv = document.getElementById('dmConv');
+            conv.innerHTML = '';
+            msgs.forEach(m=> appendDMMessage(m));
+        }catch(e){
+            document.getElementById('dmConv').innerHTML = '<div style="color:var(--muted)">No previous messages</div>';
+        }
+    }
+
+    function sendDM(){
+        const dmInput = document.getElementById('dmInput');
+        const text = dmInput.value.trim();
+        if(!activeDMUser) { alert('Select a user first'); return; }
+        if(!text) return;
+
+        const payload = {
+            sender: me,
+            receiver: activeDMUser,
+            content: text,
+            messageType: 'PRIVATE'
+        };
+
+        stompClient.send('/app/privatemessage', {}, JSON.stringify(payload));
+        dmInput.value = '';
+    }
+
+    document.getElementById('dmInput').addEventListener('keydown', e=>{ if(e.key==='Enter') sendDM(); });
+    document.getElementById('dmSendBtn').addEventListener('click', sendDM);
+
+    function buildAdminTable(arr){
+        const tbody = document.querySelector('#adminTable tbody');
+        tbody.innerHTML = '';
+        arr.forEach(u=>{
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${u.id}</td>
+            <td>${escapeHtml(u.username)}</td>
+            <td>${escapeHtml(u.email||'')}</td>
+            <td>${u.verified? 'Yes':''}</td>
+            <td>${u.banned? 'Yes':''}</td>
+            <td>
+                ${u.banned ? `<button class="actionBtn unban" onclick="adminUnban(${u.id})">Unban</button>`
+                : `<button class="actionBtn ban" onclick="adminBan(${u.id})">Ban</button>`}
+                <button style="margin-left:6px" onclick="impersonate('${u.username}')">Impersonate</button>
+            </td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function adminBan(id){
+        const minutes = prompt('Ban for how many minutes? (0 for permanent)', '60');
+        if(minutes===null) return;
+        const m = parseInt(minutes||'0',10);
+        const url = `/auth/admin/ban/${id}` + (m>0? `?minutes=${m}` : '');
+        const res = await fetch(url, { method:'POST', headers:{ 'Authorization':'Bearer '+token }});
+        if(res.ok){ alert('Banned'); loadUsers(); } else alert('Ban failed');
+    }
+
+    async function adminUnban(id){
+        const res = await fetch(`/auth/admin/unban/${id}`, { method:'POST', headers:{ 'Authorization':'Bearer '+token }});
+        if(res.ok){ alert('Unbanned'); loadUsers(); } else alert('Unban failed');
+    }
+
+    function impersonate(username){
+        if(!confirm('Impersonate '+username+'?')) return;
+        sessionStorage.setItem('username', username);
+        location.reload();
+    }
+
+    function openAdmin(){ document.getElementById('adminCard').style.display = 'block'; }
+    function escapeHtml(s){ if(!s) return ''; return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+    async function loadUsers(){ await refreshUsers(); }
+
+    document.getElementById('darkToggle').onclick = () => { alert('Dark mode is default.'); }
+    refreshUsers();
+</script>
+</body>
+</html>
