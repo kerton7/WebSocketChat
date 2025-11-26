@@ -24,7 +24,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthService {
 
-
     private final AuthRepository authRepository;
 
     private final BCryptPasswordEncoder bCryptPasswordEncoder;
@@ -38,8 +37,8 @@ public class AuthService {
     private final JavaMailSender javaMailSender;
 
     public AuthRequest register(AuthRequest authRequest) {
-        User user = User.builder().username(authRequest.username()).
-                password(bCryptPasswordEncoder.encode(authRequest.password()))
+        User user = User.builder().username(authRequest.username())
+                .password(bCryptPasswordEncoder.encode(authRequest.password()))
                 .email(authRequest.email())
                 .verificationCode(UUID.randomUUID().toString()).verified(false)
                 .role("ROLE_USER").build();
@@ -50,7 +49,7 @@ public class AuthService {
     }
 
     private void sendVerificationEmail(User user) {
-        String link = "https://august-redissoluble-cristian.ngrok-free.dev/auth/verify?code=" + user.getVerificationCode();
+        String link = "http://localhost:8080/auth/verify?code=" + user.getVerificationCode();
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(user.getEmail());
@@ -59,6 +58,7 @@ public class AuthService {
 
         javaMailSender.send(message);
     }
+
     public void verifyUser(String code) {
         User user = authRepository.findByVerificationCode(code)
                 .orElseThrow(() -> new IllegalArgumentException("Geçersiz doğrulama kodu"));
@@ -68,23 +68,22 @@ public class AuthService {
         authRepository.save(user);
     }
 
-
     public AuthResponse authenticate(AuthRequest authRequest) {
-        UsernamePasswordAuthenticationToken authenticationToken =
-                new UsernamePasswordAuthenticationToken(authRequest.username(), authRequest.password());
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+                authRequest.username(), authRequest.password());
 
         User user = authRepository.findByUsername(
                 authRequest.username()).orElseThrow(() -> new UsernameNotFoundException("Username not found!"));
         String accessToken = jwtService.generateToken(user);
 
-        if(user.isBanned()){
+        if (user.isBanned()) {
             throw new RuntimeException("User is banned!");
         }
         user.setCurrentToken(accessToken);
         authRepository.save(user);
         authenticationProvider.authenticate(authenticationToken);
         sessionRegistry.registerLogin(user.getId(), accessToken);
-        return new AuthResponse(accessToken,user.getRole());
+        return new AuthResponse(accessToken, user.getRole());
     }
 
     public String logout(String username) {
@@ -96,18 +95,18 @@ public class AuthService {
         return "Logged out";
     }
 
-
     public String banUser(Long id) throws IOException {
-       var user = authRepository.findById(id).orElseThrow(() -> new UsernameNotFoundException("Username not found!"));
-       user.setBanned(true);
-       authRepository.save(user);
-       sessionRegistry.closeSession(id);
-       return "User banned";
+        var user = authRepository.findById(id).orElseThrow(() -> new UsernameNotFoundException("Username not found!"));
+        user.setBanned(true);
+        authRepository.save(user);
+        sessionRegistry.closeSession(id);
+        return "User banned";
     }
 
     public String unBanUser(Long id) {
         var user = authRepository.findById(id).orElseThrow(() -> new UsernameNotFoundException("Username not found!"));
-        if(!user.isBanned())  return "User is already not banned";
+        if (!user.isBanned())
+            return "User is already not banned";
 
         user.setBanned(false);
         authRepository.save(user);
@@ -119,9 +118,4 @@ public class AuthService {
         return authRepository.findAll();
     }
 
-
-
-
-
 }
-

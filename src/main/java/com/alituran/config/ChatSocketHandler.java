@@ -9,16 +9,15 @@ import java.util.Set;
 
 public class ChatSocketHandler extends TextWebSocketHandler {
 
-    // Tüm aktif bağlanan socketler burada tutulur
-    private static final Set<WebSocketSession> sessions =
-            Collections.synchronizedSet(new HashSet<>());
+    private static final Set<WebSocketSession> sessions = Collections.synchronizedSet(new HashSet<>());
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         sessions.add(session);
 
         String username = (String) session.getAttributes().get("username");
-        if (username == null) username = "Unknown";
+        if (username == null)
+            username = "Unknown";
 
         for (WebSocketSession s : sessions) {
             if (s.isOpen()) {
@@ -31,7 +30,8 @@ public class ChatSocketHandler extends TextWebSocketHandler {
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
 
         String username = (String) session.getAttributes().get("username");
-        if (username == null) username = "User";
+        if (username == null)
+            username = "User";
 
         String formattedMessage = username + ": " + message.getPayload();
 
@@ -47,7 +47,8 @@ public class ChatSocketHandler extends TextWebSocketHandler {
         sessions.remove(session);
 
         String username = (String) session.getAttributes().get("username");
-        if (username == null) username = "Unknown";
+        if (username == null)
+            username = "Unknown";
 
         for (WebSocketSession s : sessions) {
             if (s.isOpen()) {
@@ -55,6 +56,5 @@ public class ChatSocketHandler extends TextWebSocketHandler {
             }
         }
     }
-
 
 }
