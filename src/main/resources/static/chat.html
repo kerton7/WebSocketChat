@@ -53,7 +53,7 @@
         <div class="logo">🔥 <span style="margin-left:6px">Chatter</span></div>
         <div class="search">
             <input id="searchUsers" placeholder="Search users...">
-            <button class="iconBtn" onclick="refreshUsers()">⟳</button>
+            <button class="iconBtn" onclick="if(role === 'ROLE_ADMIN') refreshUsers(); else refreshActiveUsersDisplay();">⟳</button>
         </div>
         <div class="userList" id="userList"></div>
         <div style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px">Signed in as <strong id="meLabel"></strong></div>
@@ -62,12 +62,13 @@
     <div class="center">
         <div class="top">
             <div>
-                <h2 style="margin:0">Public Chat</h2>
+                <h2 style="margin:0">C-420 Chat</h2>
                 <div style="color:var(--muted);font-size:13px">General room — everyone can join</div>
             </div>
             <div class="topActions">
                 <button class="iconBtn" id="darkToggle">Dark</button>
                 <button class="iconBtn" onclick="openAdmin()" id="adminToggle" style="display:none">Admin</button>
+                <button class="iconBtn" onclick="logout()" title="Logout">🚪</button>
             </div>
         </div>
 
@@ -117,21 +118,53 @@
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 <script>
+    // URL parametrelerinden token, username ve role'ü al (OAuth2 için)
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlToken = urlParams.get('token');
+    const urlUsername = urlParams.get('username');
+    const urlRole = urlParams.get('role');
+    
+    if(urlToken && urlUsername){
+        // URLSearchParams otomatik olarak decode eder
+        sessionStorage.setItem('token', urlToken);
+        sessionStorage.setItem('username', urlUsername);
+        sessionStorage.setItem('role', urlRole || 'ROLE_USER');
+        console.log('OAuth2 login successful, token saved');
+        // URL'yi temizle
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+    
     const token = sessionStorage.getItem('token');
     const me = sessionStorage.getItem('username');
     const role = sessionStorage.getItem('role') || 'ROLE_USER';
     const banned = sessionStorage.getItem('banned') === 'true';
-    if(!token || !me){ alert('Login first'); location.href='index.html' }
+    
+    console.log('Token check:', { token: token ? 'exists' : 'missing', username: me });
+    
+    if(!token || !me){ 
+        console.error('No token or username found, redirecting to login');
+        alert('Login first'); 
+        location.href='index.html' 
+    }
     if(banned){ alert('You are banned!'); location.href='index.html' }
     document.getElementById('meLabel').innerText = me;
-    if(role === 'ROLE_ADMIN'){ document.getElementById('adminToggle').style.display='inline-block'; document.getElementById('adminCard').style.display='block' }
+    
+    // Admin paneli görünürlüğü
+    if(role === 'ROLE_ADMIN'){
+        document.getElementById('adminToggle').style.display='inline-block';
+        // Admin panel başlangıçta gizli, butona tıklayınca açılacak
+        console.log('Admin kullanıcı tespit edildi. Admin paneli aktif.');
+    } else {
+        console.log('Normal kullanıcı. Role:', role);
+    }
 
     let stompClient = null;
     const usersCache = {};
     let activeDMUser = null;
+    let activeUsersSet = new Set();
 
     function connectWS(){
-        const sock = new SockJS('/ws');
+        const sock = new SockJS('/ws?token=' + encodeURIComponent(token));
         stompClient = Stomp.over(sock);
         stompClient.connect(
             { Authorization: 'Bearer ' + token },
@@ -139,14 +172,56 @@
                 console.log('WS Connected', frame);
                 subscribeChannels();
                 stompClient.send('/app/chat.addUser', {}, JSON.stringify({ sender: me, messageType: 'JOIN' }));
+                // Public chat geçmişini yükle
+                loadPublicChatHistory();
             },
             err => console.error('WS error', err)
         );
     }
 
+    async function loadPublicChatHistory(){
+        try{
+            const res = await fetch('/api/chat/history?limit=50', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            if(res.ok){
+                const messages = await res.json();
+                const box = document.getElementById('messages');
+                box.innerHTML = '';
+                // Mesajları ters sırada göster (en eski en üstte)
+                messages.reverse().forEach(m => {
+                    if(m.messageType === 'CHAT' && m.content){
+                        appendPublicMessage(m);
+                    }
+                });
+            }
+        }catch(e){
+            console.warn('Failed to load chat history:', e);
+        }
+    }
+
     function subscribeChannels(){
         stompClient.subscribe('/topic/public', msg => { appendPublicMessage(JSON.parse(msg.body)); });
         stompClient.subscribe('/user/queue/private', msg => { appendDMMessage(JSON.parse(msg.body)); });
+        stompClient.subscribe('/user/queue/errors', msg => { 
+            const errorMsg = JSON.parse(msg.body);
+            showErrorMessage(errorMsg.content || errorMsg.message || 'Bir hata oluştu');
+        });
+        stompClient.subscribe('/topic/activeUsers', msg => { 
+            const activeUsers = JSON.parse(msg.body);
+            updateActiveUsersList(activeUsers);
+        });
+    }
+    
+    function showErrorMessage(message){
+        alert(message);
+        // Eğer ban mesajı ise, logout yap
+        if(message.includes('yasaklandı') || message.includes('banned')){
+            sessionStorage.clear();
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
+        }
     }
 
     connectWS();
@@ -195,32 +270,68 @@
     }
 
     async function refreshUsers(){
+        if(role !== 'ROLE_ADMIN'){
+            return;
+        }
         try{
             const res = await fetch('/auth/admin/users', { headers:{ 'Authorization': 'Bearer '+token }});
             if(!res.ok) throw new Error('failed');
             const arr = await res.json();
             buildUserList(arr);
             buildAdminTable(arr);
-        }catch(e){ console.warn(e); }
+        }catch(e){ 
+            console.error('Admin panel yükleme hatası:', e);
+            alert('Admin panel yüklenemedi. Admin yetkisine sahip olduğunuzdan emin olun.');
+        }
     }
 
-    function buildUserList(arr){
+    function updateActiveUsersList(activeUsersArray){
+        activeUsersSet = new Set(activeUsersArray);
+        refreshActiveUsersDisplay();
+    }
+
+    function refreshActiveUsersDisplay(){
         const ul = document.getElementById('userList');
         ul.innerHTML = '';
-        arr.forEach(u=>{
-            usersCache[u.username]=u;
-            if(u.username===me) return;
+        
+        // Önce aktif kullanıcıları göster
+        activeUsersSet.forEach(username => {
+            if(username === me) return;
+            const user = usersCache[username];
             const row = el('div','userRow');
             const left = el('div');
-            left.innerHTML = `<div class="username">${escapeHtml(u.username)}</div><div class="status">${u.verified? 'Verified' : 'Unverified'} • ${u.banned? 'Banned' : 'Active'}</div>`;
+            const statusText = user ? 
+                `${user.verified? 'Verified' : 'Unverified'} • ${user.banned? 'Banned' : 'Active'}` : 
+                'Active';
+            left.innerHTML = `<div class="username">${escapeHtml(username)} <span style="color:var(--accent-2);font-size:10px">●</span></div><div class="status">${statusText}</div>`;
             row.appendChild(left);
             const actions = el('div');
             const dmBtn = el('button','iconBtn','DM');
-            dmBtn.onclick = ()=> openDM(u.username);
+            dmBtn.onclick = ()=> openDM(username);
             actions.appendChild(dmBtn);
             row.appendChild(actions);
             ul.appendChild(row);
         });
+        
+        // Eğer hiç aktif kullanıcı yoksa bilgi göster
+        if(activeUsersSet.size <= 1){
+            const info = el('div');
+            info.style.color = 'var(--muted)';
+            info.style.fontSize = '12px';
+            info.style.textAlign = 'center';
+            info.style.padding = '12px';
+            info.innerText = 'No other active users';
+            ul.appendChild(info);
+        }
+    }
+
+    function buildUserList(arr){
+        // Tüm kullanıcıları cache'e ekle
+        arr.forEach(u=>{
+            usersCache[u.username]=u;
+        });
+        // Aktif kullanıcı listesini güncelle
+        refreshActiveUsersDisplay();
     }
 
     async function openDM(username){
@@ -228,12 +339,23 @@
         document.getElementById('dmStatus').innerText = 'DM: '+username;
         document.getElementById('dmConv').innerHTML = '<div style="color:var(--muted)">Loading...</div>';
         try{
-            const res = await fetch('/dm/'+encodeURIComponent(username), { headers:{ 'Authorization': 'Bearer '+token }});
-            const msgs = await res.json();
-            const conv = document.getElementById('dmConv');
-            conv.innerHTML = '';
-            msgs.forEach(m=> appendDMMessage(m));
+            const res = await fetch('/api/chat/dm/'+encodeURIComponent(username)+'?currentUser='+encodeURIComponent(me), {
+                headers:{ 'Authorization': 'Bearer '+token }
+            });
+            if(res.ok){
+                const msgs = await res.json();
+                const conv = document.getElementById('dmConv');
+                conv.innerHTML = '';
+                if(msgs.length === 0){
+                    conv.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px">No previous messages. Start the conversation!</div>';
+                } else {
+                    msgs.forEach(m=> appendDMMessage(m));
+                }
+            } else {
+                document.getElementById('dmConv').innerHTML = '<div style="color:var(--muted)">Failed to load messages</div>';
+            }
         }catch(e){
+            console.error('Failed to load DM history:', e);
             document.getElementById('dmConv').innerHTML = '<div style="color:var(--muted)">No previous messages</div>';
         }
     }
@@ -297,12 +419,56 @@
         location.reload();
     }
 
-    function openAdmin(){ document.getElementById('adminCard').style.display = 'block'; }
+    function openAdmin(){ 
+        if(role !== 'ROLE_ADMIN'){
+            alert('Admin yetkiniz yok!');
+            return;
+        }
+        document.getElementById('adminCard').style.display = 'block'; 
+        // Panel açıldığında kullanıcıları yükle
+        refreshUsers();
+    }
     function escapeHtml(s){ if(!s) return ''; return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
-    async function loadUsers(){ await refreshUsers(); }
+    async function loadUsers(){ 
+        if(role === 'ROLE_ADMIN'){
+            await refreshUsers(); 
+        }
+    }
+
+    async function logout(){
+        if(!confirm('Çıkış yapmak istediğinize emin misiniz?')) return;
+        
+        try{
+            // WebSocket bağlantısını kapat
+            if(stompClient){
+                stompClient.disconnect();
+            }
+            
+            // Backend'e logout isteği gönder
+            const res = await fetch('/auth/logout/'+encodeURIComponent(me), {
+                method:'POST',
+                headers:{ 'Authorization': 'Bearer '+token }
+            });
+            
+            // SessionStorage'ı temizle
+            sessionStorage.clear();
+            
+            // Index sayfasına yönlendir
+            window.location.href = 'index.html';
+        }catch(e){
+            console.error('Logout error:', e);
+            // Hata olsa bile sessionStorage'ı temizle ve yönlendir
+            sessionStorage.clear();
+            window.location.href = 'index.html';
+        }
+    }
 
     document.getElementById('darkToggle').onclick = () => { alert('Dark mode is default.'); }
-    refreshUsers();
+    
+    // Sadece admin ise kullanıcı listesini yükle
+    if(role === 'ROLE_ADMIN'){
+        refreshUsers();
+    }
 </script>
 </body>
 </html>

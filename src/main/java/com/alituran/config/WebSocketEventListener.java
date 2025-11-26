@@ -16,8 +16,8 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 @Slf4j
 public class WebSocketEventListener {
 
-
     private final SimpMessageSendingOperations simpMessageSendingOperations;
+    private final ActiveUserStore activeUserStore;
 
     @EventListener
     public void handleWebSocketDisconnectListener(SessionDisconnectEvent event) {
@@ -26,6 +26,11 @@ public class WebSocketEventListener {
          String username = (String) headerAccessor.getSessionAttributes().get("username");
          if(username!=null){
              log.info("User disconnected : {}",username);
+             
+             // Aktif kullanıcı listesinden çıkar
+             activeUserStore.remove(username);
+             simpMessageSendingOperations.convertAndSend("/topic/activeUsers", activeUserStore.getUsers());
+             
              var build = Message.builder().messageType(MessageType.LEAVE)
                      .sender(username).build();
              simpMessageSendingOperations.convertAndSend("/topic/public", build);

@@ -30,6 +30,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
+        // OAuth2 callback endpoint'lerini atla
+        String requestPath = request.getRequestURI();
+        if (requestPath != null && (requestPath.startsWith("/login/oauth2/") || requestPath.startsWith("/oauth2/"))) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String header = request.getHeader("Authorization");
 
         if (header == null || !header.startsWith("Bearer ")) {
@@ -38,7 +45,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         String token = header.substring(7);
 
-        String usernameFromToken = jwtService.getUsernameFromToken(token);
+        // Token parse edilemezse (geçersiz format) filter'ı atla
+        String usernameFromToken;
+        try {
+            usernameFromToken = jwtService.getUsernameFromToken(token);
+        } catch (Exception e) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         String role = jwtService.getRoleFromToken(token);
         if(usernameFromToken==null || SecurityContextHolder.getContext().getAuthentication()!=null) {

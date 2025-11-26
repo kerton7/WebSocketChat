@@ -7,7 +7,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class ActiveUserStore {
-/*
     private final Set<String> users = ConcurrentHashMap.newKeySet();
 
     public void add(String username) {
@@ -19,8 +18,6 @@ public class ActiveUserStore {
     }
 
     public Set<String> getUsers() {
-        return users;
+        return Set.copyOf(users);
     }
-    */
-
 }

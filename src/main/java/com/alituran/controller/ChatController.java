@@ -1,9 +1,11 @@
 package com.alituran.controller;
 
+import com.alituran.config.ActiveUserStore;
 import com.alituran.enums.MessageType;
 import com.alituran.model.Message;
 import com.alituran.model.User;
 import com.alituran.repository.AuthRepository;
+import com.alituran.repository.MessageRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -12,7 +14,7 @@ import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
-import java.security.Principal;
+import java.time.LocalDateTime;
 
 
 @Controller
@@ -23,6 +25,10 @@ public class ChatController {
   private final AuthRepository authRepository;
 
     private final SimpMessagingTemplate simpMessagingTemplate;
+
+    private final ActiveUserStore activeUserStore;
+
+    private final MessageRepository messageRepository;
 
 
     @MessageMapping("/chat.sendMessage")  // /app/sendMessage ile gelir
@@ -37,12 +43,42 @@ public class ChatController {
         User user = authRepository.findByUsername(username).orElseThrow();
 
         if(user.isBanned()){
+            // Kullanıcıya özel hata mesajı gönder
+            Message errorMessage = Message.builder()
+                    .sender("System")
+                    .content("Hesabınız yasaklandı! Mesaj gönderemezsiniz.")
+                    .messageType(MessageType.CHAT)
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            simpMessagingTemplate.convertAndSendToUser(
+                    username,
+                    "/queue/errors",
+                    errorMessage
+            );
             throw new RuntimeException("You are banned from sending messages");
         }
 
         if(!user.isVerified()){
+            // Kullanıcıya özel hata mesajı gönder
+            Message errorMessage = Message.builder()
+                    .sender("System")
+                    .content("Email adresinizi doğrulamanız gerekiyor! Mesaj göndermek için email doğrulama linkine tıklayın.")
+                    .messageType(MessageType.CHAT)
+                    .timestamp(LocalDateTime.now())
+                    .build();
+            simpMessagingTemplate.convertAndSendToUser(
+                    username,
+                    "/queue/errors",
+                    errorMessage
+            );
             throw new RuntimeException("You must verify your email before sending messages");
         }
+
+        // Mesajı veritabanına kaydet
+        message.setSender(username);
+        message.setMessageType(MessageType.CHAT);
+        message.setTimestamp(LocalDateTime.now());
+        messageRepository.save(message);
 
         return message;
     }
@@ -51,8 +87,14 @@ public class ChatController {
     @MessageMapping("/chat.addUser")  // /app/sendMessage ile gelir
     @SendTo("/topic/public")
     public Message addUser(@Payload Message message, SimpMessageHeaderAccessor headerAccessor) {
-        headerAccessor.getSessionAttributes().put("username", message.getSender());
-        headerAccessor.setUser(() -> message.getSender());
+        String username = message.getSender();
+        headerAccessor.getSessionAttributes().put("username", username);
+        headerAccessor.setUser(() -> username);
+        
+        // Aktif kullanıcı listesine ekle ve güncelle
+        activeUserStore.add(username);
+        simpMessagingTemplate.convertAndSend("/topic/activeUsers", activeUserStore.getUsers());
+        
         return message;
     }
 
@@ -60,47 +102,55 @@ public class ChatController {
     @MessageMapping("/privatemessage")
     public void sendPrivateMessage(@Payload Message message, SimpMessageHeaderAccessor headerAccessor) {
         try {
-            System.out.println("=== DM MESSAGE RECEIVED ===");
-            System.out.println("Message receiver: " + (message != null ? message.getReceiver() : "null"));
-            System.out.println("Message content: " + (message != null ? message.getContent() : "null"));
-            System.out.println("Session attributes: " + headerAccessor.getSessionAttributes());
 
             String senderUsername = (String) headerAccessor.getSessionAttributes().get("username");
-            System.out.println("Sender username from session: " + senderUsername);
+
 
             if(senderUsername == null) {
-                System.err.println("ERROR: Username is null in session!");
                 throw new RuntimeException("User not authenticated");
             }
-
-            System.out.println("Step 1: Finding sender...");
             User sender = authRepository.findByUsername(senderUsername)
                     .orElseThrow(() -> new RuntimeException("Sender not found"));
-            System.out.println("Step 1: Sender found: " + sender.getUsername());
 
-            System.out.println("Step 2: Checking if sender is banned...");
             if(sender.isBanned()){
-                System.err.println("ERROR: Sender is banned!");
+                // Kullanıcıya özel hata mesajı gönder
+                Message errorMessage = Message.builder()
+                        .sender("System")
+                        .content("Hesabınız yasaklandı! Mesaj gönderemezsiniz.")
+                        .messageType(MessageType.PRIVATE)
+                        .timestamp(LocalDateTime.now())
+                        .build();
+                simpMessagingTemplate.convertAndSendToUser(
+                        senderUsername,
+                        "/queue/errors",
+                        errorMessage
+                );
                 throw new RuntimeException("You are banned from sending messages");
             }
-            System.out.println("Step 2: Sender not banned");
-
-            System.out.println("Step 3: Checking if sender is verified...");
             if(!sender.isVerified()){
-                System.err.println("ERROR: Sender is not verified!");
+                // Kullanıcıya özel hata mesajı gönder
+                Message errorMessage = Message.builder()
+                        .sender("System")
+                        .content("Email adresinizi doğrulamanız gerekiyor! Mesaj göndermek için email doğrulama linkine tıklayın.")
+                        .messageType(MessageType.PRIVATE)
+                        .timestamp(LocalDateTime.now())
+                        .build();
+                simpMessagingTemplate.convertAndSendToUser(
+                        senderUsername,
+                        "/queue/errors",
+                        errorMessage
+                );
                 throw new RuntimeException("You must verify your email before sending messages");
             }
-            System.out.println("Step 3: Sender is verified");
-
-            System.out.println("Step 4: Finding receiver: " + message.getReceiver());
             User receiver = authRepository.findByUsername(message.getReceiver())
                     .orElseThrow(() -> new RuntimeException("Receiver not found"));
-            System.out.println("Step 4: Receiver found: " + receiver.getUsername());
 
             message.setSender(senderUsername);
             message.setMessageType(MessageType.PRIVATE);
+            message.setTimestamp(LocalDateTime.now());
 
-            System.out.println("Step 5: Sending DM from: " + senderUsername + " to: " + receiver.getUsername());
+            // Mesajı veritabanına kaydet
+            messageRepository.save(message);
 
             // Alıcıya gönder
             simpMessagingTemplate.convertAndSendToUser(
@@ -109,7 +159,6 @@ public class ChatController {
                     message
             );
 
-            System.out.println("Step 6: Message sent to receiver: " + receiver.getUsername());
 
             // BONUS: Gönderene de echo et (kendi mesajını görsün)
             simpMessagingTemplate.convertAndSendToUser(
@@ -118,12 +167,7 @@ public class ChatController {
                     message
             );
 
-            System.out.println("Step 7: Message echoed to sender: " + senderUsername);
-            System.out.println("=== DM SENT SUCCESSFULLY ===");
-
         } catch (Exception e) {
-            System.err.println("=== DM ERROR ===");
-            System.err.println("Error message: " + e.getMessage());
             e.printStackTrace();
             throw e;
         }

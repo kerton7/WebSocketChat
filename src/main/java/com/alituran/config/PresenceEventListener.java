@@ -12,7 +12,6 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 @Component
 @RequiredArgsConstructor
 public class PresenceEventListener {
-/*
     private final ActiveUserStore activeUserStore;
     private final SimpMessageSendingOperations messagingTemplate;
 
@@ -23,7 +22,7 @@ public class PresenceEventListener {
 
         if (username != null) {
             activeUserStore.add(username);
-            messagingTemplate.convertAndSend("/topic/users", activeUserStore.getUsers());
+            messagingTemplate.convertAndSend("/topic/activeUsers", activeUserStore.getUsers());
         }
     }
 
@@ -34,7 +33,7 @@ public class PresenceEventListener {
 
         if (username != null) {
             activeUserStore.remove(username);
-            messagingTemplate.convertAndSend("/topic/users", activeUserStore.getUsers());
+            messagingTemplate.convertAndSend("/topic/activeUsers", activeUserStore.getUsers());
         }
-    }*/
+    }
 }
