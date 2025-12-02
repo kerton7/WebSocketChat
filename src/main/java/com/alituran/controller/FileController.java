@@ -15,11 +15,12 @@ import java.io.IOException;
 @RestController
 @RequestMapping("/api/files")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*", maxAge = 3600)
 public class FileController {
 
     private final FileService fileService;
 
-    @PostMapping("/upload")
+    @PostMapping(value = "/upload", consumes = "multipart/form-data")
     public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file) {
         try {
             FileUploadResponse response = fileService.uploadFile(file);
