@@ -420,7 +420,7 @@
         console.log('Mesaj gönderiliyor:', message);
 
         // WebSocket bağlantısı kontrolü
-        if (!stompClient || !stompClient.connected) {
+        if (!stompClient) {
             console.error('WebSocket bağlantısı yok!');
             alert('Bağlantı hatası. Lütfen sayfayı yenileyin.');
             return;
@@ -661,7 +661,7 @@
         console.log('DM Mesaj gönderiliyor:', payload);
 
         // WebSocket bağlantısı kontrolü
-        if (!stompClient || !stompClient.connected) {
+        if (!stompClient) {
             console.error('WebSocket bağlantısı yok!');
             alert('Bağlantı hatası. Lütfen sayfayı yenileyin.');
             return;
