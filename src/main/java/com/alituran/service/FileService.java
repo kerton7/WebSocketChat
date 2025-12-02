@@ -37,17 +37,11 @@ public class FileService {
             throw new IllegalArgumentException("Dosya boş olamaz");
         }
 
-        // Dosya boyutu kontrolü
-        if (file.getSize() > maxFileSize) {
-            throw new IllegalArgumentException("Dosya boyutu çok büyük. Maksimum: " + (maxFileSize / 1024 / 1024) + " MB");
-        }
+
 
         // Dosya tipi kontrolü
         String contentType = file.getContentType();
-        List<String> allowedTypesList = Arrays.asList(allowedTypes.split(","));
-        if (contentType == null || !allowedTypesList.contains(contentType)) {
-            throw new IllegalArgumentException("İzin verilmeyen dosya tipi. İzin verilen tipler: " + allowedTypes);
-        }
+
 
         // Upload dizinini oluştur
         Path uploadPath = Paths.get(uploadDir);
