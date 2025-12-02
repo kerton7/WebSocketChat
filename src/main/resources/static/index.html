@@ -108,9 +108,12 @@
             });
             if(!res.ok){ const t = await res.text(); alert('Login failed: '+ (t || res.status)); return; }
             const data = await res.json();
+            console.log('Login başarılı. Response data:', data);
+            console.log('Role:', data.role);
             sessionStorage.setItem('token', data.accessToken);
             sessionStorage.setItem('username', username);
             sessionStorage.setItem('role', data.role || 'ROLE_USER');
+            console.log('SessionStorage\'a kaydedildi - Role:', sessionStorage.getItem('role'));
             window.location.href = 'chat.html';
         }catch(e){ alert('Network error'); console.error(e); }
     }

@@ -54,8 +54,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        String role = jwtService.getRoleFromToken(token);
-        if(usernameFromToken==null || SecurityContextHolder.getContext().getAuthentication()!=null) {
+        if(usernameFromToken==null) {
             filterChain.doFilter(request,response);
             return;
         }

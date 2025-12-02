@@ -37,6 +37,12 @@ public class Message {
     @Column(nullable = false)
     private LocalDateTime timestamp;
 
+    private String fileUrl; // Yüklenen dosyanın URL'i
+    
+    private String fileName; // Dosya adı
+    
+    private String fileType; // Dosya tipi (image/jpeg, image/png, application/pdf, vb.)
+
     @PrePersist
     protected void onCreate() {
         timestamp = LocalDateTime.now();

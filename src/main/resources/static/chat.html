@@ -31,6 +31,12 @@
         .compose{display:flex;gap:8px;margin-top:8px;align-items:center}
         .compose input{flex:1;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit}
         .compose button{padding:10px 14px;border-radius:10px;border:none;background:var(--accent);color:#041029;font-weight:700;cursor:pointer}
+        .fileBtn{background:transparent;border:1px solid rgba(255,255,255,0.1);padding:10px;border-radius:10px;color:var(--muted);cursor:pointer;font-size:18px}
+        .fileBtn:hover{background:rgba(255,255,255,0.05);color:var(--accent)}
+        .fileInput{display:none}
+        .filePreview{display:flex;gap:8px;align-items:center;padding:8px;background:rgba(255,255,255,0.02);border-radius:8px;margin-top:8px;font-size:12px}
+        .filePreview img{max-width:60px;max-height:60px;border-radius:6px;object-fit:cover}
+        .filePreview .removeFile{background:var(--danger);color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px}
         .right{width:360px;display:flex;flex-direction:column;gap:12px}
         .dmCard, .adminCard{background:var(--panel);padding:12px;border-radius:12px;box-shadow:0 6px 30px rgba(0,0,0,0.5)}
         .dmHeader{display:flex;justify-content:space-between;align-items:center}
@@ -75,9 +81,12 @@
         <div class="messages" id="messages"></div>
 
         <div class="compose">
+            <input type="file" id="fileInput" class="fileInput" accept="image/*,application/pdf,text/plain" onchange="handleFileSelect(event)">
+            <button class="fileBtn" onclick="document.getElementById('fileInput').click()" title="Dosya/Fotoğraf Ekle">📎</button>
             <input id="msgInput" placeholder="Write a message..." onkeydown="if(event.key==='Enter') sendPublic()">
             <button onclick="sendPublic()">Send</button>
         </div>
+        <div id="filePreview" class="filePreview" style="display:none"></div>
     </div>
 
     <div class="right">
@@ -92,9 +101,12 @@
             <div class="dmConv" id="dmConv">Select a user to start private chat</div>
 
             <div class="dmCompose">
+                <input type="file" id="dmFileInput" class="fileInput" accept="image/*,application/pdf,text/plain" onchange="handleDMFileSelect(event)">
+                <button class="fileBtn" onclick="document.getElementById('dmFileInput').click()" title="Dosya/Fotoğraf Ekle" style="padding:8px">📎</button>
                 <input id="dmInput" placeholder="Message to user...">
                 <button id="dmSendBtn">Send</button>
             </div>
+            <div id="dmFilePreview" class="filePreview" style="display:none"></div>
         </div>
 
         <div class="adminCard" id="adminCard" style="display:none">
@@ -139,7 +151,12 @@
     const role = sessionStorage.getItem('role') || 'ROLE_USER';
     const banned = sessionStorage.getItem('banned') === 'true';
     
-    console.log('Token check:', { token: token ? 'exists' : 'missing', username: me });
+    console.log('=== Chat Sayfası Yüklendi ===');
+    console.log('Token:', token ? 'Mevcut (' + token.substring(0, 20) + '...)' : 'YOK');
+    console.log('Username:', me);
+    console.log('Role:', role);
+    console.log('Banned:', banned);
+    console.log('=============================');
     
     if(!token || !me){ 
         console.error('No token or username found, redirecting to login');
@@ -233,7 +250,20 @@
         const row = el('div','msgRow');
         const bubble = el('div','msgBubble');
         const meta = el('div','msgMeta', (m.sender || 'system') );
-        bubble.innerHTML = `<div style="font-size:14px">${escapeHtml(m.content)}</div>`;
+        
+        let contentHtml = '';
+        if (m.fileUrl) {
+            if (m.fileType && m.fileType.startsWith('image/')) {
+                contentHtml += `<div style="margin-bottom:8px"><img src="${m.fileUrl}" alt="${escapeHtml(m.fileName || '')}" style="max-width:300px;max-height:300px;border-radius:8px;cursor:pointer" onclick="window.open('${m.fileUrl}', '_blank')"></div>`;
+            } else {
+                contentHtml += `<div style="margin-bottom:8px;padding:8px;background:rgba(255,255,255,0.05);border-radius:6px"><a href="${m.fileUrl}" target="_blank" style="color:var(--accent);text-decoration:none">📄 ${escapeHtml(m.fileName || 'Dosya')}</a></div>`;
+            }
+        }
+        if (m.content) {
+            contentHtml += `<div style="font-size:14px">${escapeHtml(m.content)}</div>`;
+        }
+        
+        bubble.innerHTML = contentHtml;
         row.appendChild(meta);
         row.appendChild(bubble);
         box.appendChild(row);
@@ -253,7 +283,20 @@
             const b = el('div','msgBubble');
             b.style.marginBottom='8px';
             b.style.background = isMine ? 'linear-gradient(90deg,#3dd9b6,#6b8cff)' : 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))';
-            b.innerHTML = `<div style="font-size:13px"><strong>${escapeHtml(m.sender)}</strong></div><div>${escapeHtml(m.content)}</div>`;
+            
+            let contentHtml = `<div style="font-size:13px"><strong>${escapeHtml(m.sender)}</strong></div>`;
+            if (m.fileUrl) {
+                if (m.fileType && m.fileType.startsWith('image/')) {
+                    contentHtml += `<div style="margin-bottom:8px"><img src="${m.fileUrl}" alt="${escapeHtml(m.fileName || '')}" style="max-width:200px;max-height:200px;border-radius:6px;cursor:pointer" onclick="window.open('${m.fileUrl}', '_blank')"></div>`;
+                } else {
+                    contentHtml += `<div style="margin-bottom:8px;padding:6px;background:rgba(0,0,0,0.2);border-radius:4px"><a href="${m.fileUrl}" target="_blank" style="color:inherit;text-decoration:none">📄 ${escapeHtml(m.fileName || 'Dosya')}</a></div>`;
+                }
+            }
+            if (m.content) {
+                contentHtml += `<div>${escapeHtml(m.content)}</div>`;
+            }
+            
+            b.innerHTML = contentHtml;
             conv.appendChild(b);
             conv.scrollTop = conv.scrollHeight;
         } else {
@@ -261,27 +304,142 @@
         }
     }
 
-    function sendPublic(){
+    let selectedFile = null;
+
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        // Dosya boyutu kontrolü (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            alert('Dosya boyutu çok büyük. Maksimum 10MB.');
+            event.target.value = '';
+            return;
+        }
+
+        selectedFile = file;
+        showFilePreview(file);
+    }
+
+    function showFilePreview(file) {
+        const preview = document.getElementById('filePreview');
+        preview.style.display = 'flex';
+        
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview">
+                    <div style="flex:1">
+                        <div style="font-weight:600">${escapeHtml(file.name)}</div>
+                        <div style="color:var(--muted);font-size:11px">${(file.size / 1024).toFixed(2)} KB</div>
+                    </div>
+                    <button class="removeFile" onclick="removeFile()">✕</button>
+                `;
+            };
+            reader.readAsDataURL(file);
+        } else {
+            preview.innerHTML = `
+                <div style="flex:1">
+                    <div style="font-weight:600">📄 ${escapeHtml(file.name)}</div>
+                    <div style="color:var(--muted);font-size:11px">${(file.size / 1024).toFixed(2)} KB</div>
+                </div>
+                <button class="removeFile" onclick="removeFile()">✕</button>
+            `;
+        }
+    }
+
+    function removeFile() {
+        selectedFile = null;
+        document.getElementById('fileInput').value = '';
+        document.getElementById('filePreview').style.display = 'none';
+    }
+
+    async function sendPublic(){
         const input = document.getElementById('msgInput');
         const text = input.value.trim();
-        if(!text) return;
-        stompClient.send('/app/chat.sendMessage', {}, JSON.stringify({ sender: me, content: text, messageType: 'CHAT' }));
+        
+        let fileUrl = null;
+        let fileName = null;
+        let fileType = null;
+
+        // Dosya varsa önce yükle
+        if (selectedFile) {
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+
+                const uploadRes = await fetch('/api/files/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: formData
+                });
+
+                if (!uploadRes.ok) {
+                    const error = await uploadRes.text();
+                    alert('Dosya yükleme hatası: ' + error);
+                    return;
+                }
+
+                const uploadData = await uploadRes.json();
+                fileUrl = uploadData.fileUrl;
+                fileName = uploadData.fileName;
+                fileType = uploadData.fileType;
+            } catch (e) {
+                console.error('Dosya yükleme hatası:', e);
+                alert('Dosya yüklenirken hata oluştu');
+                return;
+            }
+        }
+
+        // Mesaj veya dosya olmalı
+        if (!text && !fileUrl) return;
+
+        const message = {
+            sender: me,
+            content: text || (fileUrl ? fileName : ''),
+            messageType: 'CHAT',
+            fileUrl: fileUrl,
+            fileName: fileName,
+            fileType: fileType
+        };
+
+        stompClient.send('/app/chat.sendMessage', {}, JSON.stringify(message));
+        
         input.value = '';
+        removeFile();
     }
 
     async function refreshUsers(){
         if(role !== 'ROLE_ADMIN'){
+            console.warn('refreshUsers: Role kontrolü başarısız. Role:', role);
             return;
         }
+        console.log('refreshUsers: Admin kullanıcı tespit edildi, kullanıcılar yükleniyor...');
+        console.log('Token:', token ? 'Mevcut (' + token.substring(0, 20) + '...)' : 'YOK');
+        console.log('Role:', role);
         try{
-            const res = await fetch('/auth/admin/users', { headers:{ 'Authorization': 'Bearer '+token }});
-            if(!res.ok) throw new Error('failed');
+            const res = await fetch('/auth/admin/users', { 
+                headers:{ 
+                    'Authorization': 'Bearer '+token,
+                    'Content-Type': 'application/json'
+                }
+            });
+            console.log('Response status:', res.status, res.statusText);
+            if(!res.ok) {
+                const errorText = await res.text();
+                console.error('API hatası:', res.status, errorText);
+                throw new Error(`API hatası: ${res.status} - ${errorText || res.statusText}`);
+            }
             const arr = await res.json();
+            console.log('Kullanıcılar başarıyla yüklendi:', arr.length, 'kullanıcı');
             buildUserList(arr);
             buildAdminTable(arr);
         }catch(e){ 
             console.error('Admin panel yükleme hatası:', e);
-            alert('Admin panel yüklenemedi. Admin yetkisine sahip olduğunuzdan emin olun.');
+            alert('Admin panel yüklenemedi. Hata: ' + (e.message || 'Bilinmeyen hata') + '\n\nLütfen console\'u kontrol edin (F12).');
         }
     }
 
@@ -360,21 +518,111 @@
         }
     }
 
-    function sendDM(){
+    let selectedDMFile = null;
+
+    function handleDMFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        if (file.size > 10 * 1024 * 1024) {
+            alert('Dosya boyutu çok büyük. Maksimum 10MB.');
+            event.target.value = '';
+            return;
+        }
+
+        selectedDMFile = file;
+        showDMFilePreview(file);
+    }
+
+    function showDMFilePreview(file) {
+        const preview = document.getElementById('dmFilePreview');
+        preview.style.display = 'flex';
+        
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview">
+                    <div style="flex:1">
+                        <div style="font-weight:600">${escapeHtml(file.name)}</div>
+                        <div style="color:var(--muted);font-size:11px">${(file.size / 1024).toFixed(2)} KB</div>
+                    </div>
+                    <button class="removeFile" onclick="removeDMFile()">✕</button>
+                `;
+            };
+            reader.readAsDataURL(file);
+        } else {
+            preview.innerHTML = `
+                <div style="flex:1">
+                    <div style="font-weight:600">📄 ${escapeHtml(file.name)}</div>
+                    <div style="color:var(--muted);font-size:11px">${(file.size / 1024).toFixed(2)} KB</div>
+                </div>
+                <button class="removeFile" onclick="removeDMFile()">✕</button>
+            `;
+        }
+    }
+
+    function removeDMFile() {
+        selectedDMFile = null;
+        document.getElementById('dmFileInput').value = '';
+        document.getElementById('dmFilePreview').style.display = 'none';
+    }
+
+    async function sendDM(){
         const dmInput = document.getElementById('dmInput');
         const text = dmInput.value.trim();
         if(!activeDMUser) { alert('Select a user first'); return; }
-        if(!text) return;
+        
+        let fileUrl = null;
+        let fileName = null;
+        let fileType = null;
+
+        // Dosya varsa önce yükle
+        if (selectedDMFile) {
+            try {
+                const formData = new FormData();
+                formData.append('file', selectedDMFile);
+
+                const uploadRes = await fetch('/api/files/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: formData
+                });
+
+                if (!uploadRes.ok) {
+                    const error = await uploadRes.text();
+                    alert('Dosya yükleme hatası: ' + error);
+                    return;
+                }
+
+                const uploadData = await uploadRes.json();
+                fileUrl = uploadData.fileUrl;
+                fileName = uploadData.fileName;
+                fileType = uploadData.fileType;
+            } catch (e) {
+                console.error('Dosya yükleme hatası:', e);
+                alert('Dosya yüklenirken hata oluştu');
+                return;
+            }
+        }
+
+        if (!text && !fileUrl) return;
 
         const payload = {
             sender: me,
             receiver: activeDMUser,
-            content: text,
-            messageType: 'PRIVATE'
+            content: text || (fileUrl ? fileName : ''),
+            messageType: 'PRIVATE',
+            fileUrl: fileUrl,
+            fileName: fileName,
+            fileType: fileType
         };
 
         stompClient.send('/app/privatemessage', {}, JSON.stringify(payload));
         dmInput.value = '';
+        removeDMFile();
     }
 
     document.getElementById('dmInput').addEventListener('keydown', e=>{ if(e.key==='Enter') sendDM(); });
@@ -420,10 +668,13 @@
     }
 
     function openAdmin(){ 
+        console.log('openAdmin çağrıldı. Role:', role, 'Token:', token ? 'Mevcut' : 'YOK');
         if(role !== 'ROLE_ADMIN'){
-            alert('Admin yetkiniz yok!');
+            console.warn('Admin yetkisi yok. Mevcut role:', role);
+            alert('Admin yetkiniz yok! Mevcut role: ' + role);
             return;
         }
+        console.log('Admin paneli açılıyor...');
         document.getElementById('adminCard').style.display = 'block'; 
         // Panel açıldığında kullanıcıları yükle
         refreshUsers();
@@ -465,9 +716,12 @@
 
     document.getElementById('darkToggle').onclick = () => { alert('Dark mode is default.'); }
     
-    // Sadece admin ise kullanıcı listesini yükle
+    // Sadece admin ise kullanıcı listesini yükle (hata durumunda sessizce başarısız ol, kullanıcı paneli açtığında tekrar deneyecek)
     if(role === 'ROLE_ADMIN'){
-        refreshUsers();
+        console.log('Sayfa yüklendi, admin kullanıcı tespit edildi. Kullanıcılar yükleniyor...');
+        refreshUsers().catch(err => {
+            console.warn('Sayfa yüklenirken kullanıcılar yüklenemedi (normal, panel açıldığında tekrar denenecek):', err);
+        });
     }
 </script>
 </body>

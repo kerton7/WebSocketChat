@@ -37,11 +37,12 @@ public class SecurityConfig {
                 .authorizeHttpRequests(
                         request->request.
                                 requestMatchers(REGISTER,AUTHENTICATE,OAUTH2LOGIN,WEBSOCKET,"/index.html","/chat.html","/auth/verify/**"
-                                ,"/verify/**","/admin.html","/login/oauth2/**","/oauth2/**")
-                                .permitAll().requestMatchers("/auth/admin/**").hasRole("ADMIN")
+                                ,"/verify/**","/admin.html","/login/oauth2/**","/oauth2/**","/api/files/**")
+                                .permitAll().requestMatchers("/auth/admin/**").hasAuthority("ROLE_ADMIN")
                                 .anyRequest().authenticated())
                 .oauth2Login(oauth2 -> oauth2
-                        .successHandler(oAuth2SuccessHandler))
+                        .successHandler(oAuth2SuccessHandler)
+                        .loginPage("/index.html"))
                 .authenticationProvider(authenticationProvider)
                 .sessionManagement(session->
                         session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
