@@ -1,123 +1,216 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Chat App — Room</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+    <meta name="theme-color" content="#0b1220" />
+    <title>C-420 Chat — Oda</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        * { box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
         :root{
-            --bg:#0b1220; --panel:#071022; --card:#0f1724; --muted:#9aa4b2; --accent:#6b8cff; --accent-2:#6ee7b7;
-            --danger:#ff6b6b; --success:#27ae60;
+            --bg:#050914; --panel:#0b1220; --card:#0f1724; --muted:#9aa4b2; --accent:#6b8cff; --accent-2:#6ee7b7;
+            --danger:#ff6b6b; --success:#27ae60; --border:rgba(255,255,255,0.08);
         }
-        html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto;}
-        body{background:linear-gradient(180deg,#05060a 0%, #071122 60%);color:#e6eef6}
-        .app{display:flex;height:100vh;gap:18px;padding:18px;box-sizing:border-box}
-        .left{width:260px;background:var(--panel);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:12px;box-shadow:0 6px 30px rgba(0,0,0,0.6);}
-        .logo{font-weight:700;color:var(--accent);display:flex;align-items:center;gap:8px}
-        .search{display:flex;gap:8px}
-        .search input{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit}
-        .userList{overflow:auto;flex:1;padding-right:6px}
-        .userRow{display:flex;align-items:center;justify-content:space-between;padding:8px;border-radius:8px;cursor:pointer}
-        .userRow:hover{background:rgba(255,255,255,0.02)}
-        .username{font-weight:600}
-        .status{font-size:12px;color:var(--muted)}
-        .center{flex:1;display:flex;flex-direction:column;gap:12px}
-        .center .top{display:flex;justify-content:space-between;align-items:center}
-        .messages{background:var(--card);border-radius:12px;padding:14px;height:calc(100vh - 240px);overflow:auto;box-shadow:inset 0 1px 0 rgba(255,255,255,0.02)}
-        .msgRow{display:flex;gap:10px;margin-bottom:12px}
-        .msgBubble{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:10px 12px;border-radius:10px;max-width:70%}
-        .msgMeta{font-size:12px;color:var(--muted);margin-bottom:6px}
-        .compose{display:flex;gap:8px;margin-top:8px;align-items:center}
-        .compose input{flex:1;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit}
-        .compose button{padding:10px 14px;border-radius:10px;border:none;background:var(--accent);color:#041029;font-weight:700;cursor:pointer}
-        .fileBtn{background:transparent;border:1px solid rgba(255,255,255,0.1);padding:10px;border-radius:10px;color:var(--muted);cursor:pointer;font-size:18px}
-        .fileBtn:hover{background:rgba(255,255,255,0.05);color:var(--accent)}
-        .fileInput{display:none}
-        .filePreview{display:flex;gap:8px;align-items:center;padding:8px;background:rgba(255,255,255,0.02);border-radius:8px;margin-top:8px;font-size:12px}
-        .filePreview img{max-width:60px;max-height:60px;border-radius:6px;object-fit:cover}
-        .filePreview .removeFile{background:var(--danger);color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px}
-        .right{width:360px;display:flex;flex-direction:column;gap:12px}
-        .dmCard, .adminCard{background:var(--panel);padding:12px;border-radius:12px;box-shadow:0 6px 30px rgba(0,0,0,0.5)}
-        .dmHeader{display:flex;justify-content:space-between;align-items:center}
-        .dmList{max-height:220px;overflow:auto;margin-top:8px}
-        .dmConv{background:var(--card);padding:10px;border-radius:10px;height:220px;overflow:auto}
-        .dmCompose{display:flex;gap:8px;margin-top:8px}
-        .dmCompose input{flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit}
-        .dmCompose button{padding:8px 10px;border-radius:8px;border:none;background:var(--accent-2);color:#041029;font-weight:700;cursor:pointer}
-        .adminCard table{width:100%;border-collapse:collapse}
-        .adminCard th, .adminCard td{padding:6px;border:1px solid rgba(255,255,255,0.03);text-align:center;font-size:13px}
-        .pill{padding:4px 8px;border-radius:999px;background:rgba(255,255,255,0.02);font-size:12px;color:var(--muted)}
-        .topActions{display:flex;gap:8px;align-items:center}
-        .iconBtn{background:transparent;border:1px solid rgba(255,255,255,0.03);padding:8px;border-radius:8px;color:var(--muted);cursor:pointer}
-        @media (max-width:980px){ .right{display:none} .left{display:none} .center{flex:1 1 auto} .app{padding:8px} .messages{height:60vh} }
+        html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto;background:var(--bg);color:#e6eef6;}
+        body{min-height:100vh;display:flex;flex-direction:column;}
+
+        .app{display:flex;flex-direction:column;min-height:100vh;background:linear-gradient(180deg,#05060a 0%, #071122 60%);padding:12px;gap:12px;}
+
+        .topbar{
+            display:flex;align-items:center;justify-content:space-between;
+            background:var(--panel);border-radius:14px;padding:10px 12px;
+            box-shadow:0 8px 30px rgba(0,0,0,0.35);
+            position:sticky;top:0;z-index:20;
+        }
+        .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;color:var(--accent);}
+        .brand small{color:var(--muted);font-weight:500;}
+        .top-actions{display:flex;gap:8px;align-items:center;}
+        .iconBtn{
+            background:rgba(255,255,255,0.04);border:1px solid var(--border);color:#e6eef6;
+            border-radius:10px;padding:10px;cursor:pointer;min-width:44px;min-height:44px;
+            display:flex;align-items:center;justify-content:center;font-size:16px;
+        }
+        .iconBtn:active{transform:scale(0.97);}
+
+        .layout{display:flex;gap:12px;}
+        .main{
+            flex:1;display:flex;flex-direction:column;gap:10px;
+            background:var(--panel);border-radius:16px;padding:12px;
+            box-shadow:0 8px 30px rgba(0,0,0,0.35);
+        }
+        .room-title{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+        .room-title h2{margin:0;font-size:18px;}
+        .room-title .subtitle{color:var(--muted);font-size:13px;}
+
+        .messages{
+            background:var(--card);border-radius:14px;padding:12px;
+            height:calc(100vh - 240px);overflow:auto;
+            box-shadow:inset 0 1px 0 rgba(255,255,255,0.03);
+        }
+        .msgRow{display:flex;gap:10px;margin-bottom:12px;}
+        .msgMeta{font-size:12px;color:var(--muted);min-width:70px;}
+        .msgBubble{
+            background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+            padding:10px 12px;border-radius:12px;max-width:80%;
+            word-break:break-word;
+        }
+        .compose{
+            display:flex;gap:10px;align-items:center;margin-top:6px;flex-wrap:wrap;
+        }
+        .compose input[type="text"]{
+            flex:1;min-width:180px;padding:14px;border-radius:12px;
+            border:1px solid var(--border);background:rgba(255,255,255,0.02);
+            color:inherit;font-size:15px;outline:none;
+        }
+        .compose button.primary{
+            padding:14px 16px;border-radius:12px;border:none;background:var(--accent);
+            color:#041029;font-weight:700;cursor:pointer;min-height:48px;flex-shrink:0;
+        }
+        .fileBtn{
+            background:rgba(255,255,255,0.04);border:1px solid var(--border);
+            color:#e6eef6;border-radius:12px;padding:14px;cursor:pointer;
+            min-width:48px;min-height:48px;font-size:18px;display:flex;align-items:center;justify-content:center;
+        }
+        .fileInput{display:none;}
+        .filePreview{
+            display:none;gap:10px;align-items:center;padding:10px;
+            background:rgba(255,255,255,0.05);border-radius:12px;font-size:13px;
+            border:1px solid var(--border);
+        }
+        .filePreview img{max-width:72px;max-height:72px;border-radius:8px;object-fit:cover;}
+        .removeFile{
+            background:var(--danger);color:white;border:none;padding:8px 10px;border-radius:8px;
+            cursor:pointer;font-size:12px;
+        }
+
+        /* Drawer */
+        .drawer-overlay{
+            position:fixed;inset:0;background:rgba(0,0,0,0.45);backdrop-filter:blur(2px);
+            display:none;z-index:40;
+        }
+        .drawer{
+            position:fixed;top:0;left:0;height:100vh;width:320px;max-width:85vw;
+            background:var(--panel);box-shadow:0 12px 40px rgba(0,0,0,0.55);
+            transform:translateX(-100%);transition:transform 0.25s ease;z-index:50;
+            display:flex;flex-direction:column;padding:14px 12px;gap:12px;
+        }
+        .drawer.open{transform:translateX(0);}
+        .drawer-header{display:flex;justify-content:space-between;align-items:center;}
+        .drawer h3{margin:0;font-size:16px;}
+        .search{display:flex;gap:8px;}
+        .search input{
+            flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);
+            background:rgba(255,255,255,0.02);color:inherit;
+        }
+        .userList,.dmList{overflow:auto;flex:1;padding-right:4px;}
+        .userRow{
+            display:flex;align-items:center;justify-content:space-between;
+            padding:10px;border-radius:10px;cursor:pointer;
+            background:rgba(255,255,255,0.02);margin-bottom:8px;
+        }
+        .username{font-weight:600;}
+        .status{font-size:12px;color:var(--muted);}
+        .pill{padding:4px 8px;border-radius:999px;background:rgba(255,255,255,0.08);font-size:12px;color:var(--muted);}
+
+        /* DM area */
+        .dmCard{
+            background:var(--card);padding:10px;border-radius:12px;display:flex;flex-direction:column;gap:8px;
+            border:1px solid var(--border);
+        }
+        .dmConv{
+            background:rgba(0,0,0,0.2);padding:10px;border-radius:10px;
+            max-height:260px;overflow:auto;font-size:14px;
+        }
+        .dmCompose{
+            display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+        }
+        .dmCompose input{
+            flex:1;min-width:160px;padding:12px;border-radius:10px;border:1px solid var(--border);
+            background:rgba(255,255,255,0.03);color:inherit;
+        }
+        .dmCompose button{
+            padding:12px;border-radius:10px;border:none;background:var(--accent-2);color:#041029;font-weight:700;cursor:pointer;min-height:44px;
+        }
+
+        /* Admin */
+        .adminCard{
+            background:var(--card);padding:10px;border-radius:12px;border:1px solid var(--border);
+            max-height:40vh;overflow:auto;
+        }
+        .adminCard table{width:100%;border-collapse:collapse;font-size:13px;}
+        .adminCard th, .adminCard td{padding:6px;border:1px solid var(--border);text-align:center;}
+        .actionBtn{padding:6px 8px;border-radius:8px;border:none;cursor:pointer;}
+        .actionBtn.ban{background:var(--danger);color:#fff;}
+        .actionBtn.unban{background:var(--success);color:#041029;}
+
+        /* Floating buttons */
+        .fab{
+            position:fixed;bottom:16px;right:16px;z-index:30;
+            display:flex;gap:10px;flex-direction:column;
+        }
+        .fab button{
+            border:none;border-radius:50%;width:56px;height:56px;font-size:20px;
+            background:linear-gradient(135deg,var(--accent-2),var(--accent));color:#041029;
+            box-shadow:0 10px 30px rgba(0,0,0,0.45);cursor:pointer;
+        }
+
+        /* Mobile */
+        @media (max-width:960px){
+            .layout{flex-direction:column;}
+            .messages{height:calc(100vh - 280px);}
+        }
+        @media (max-width:640px){
+            .app{padding:8px;}
+            .topbar{border-radius:12px;}
+            .main{padding:10px;border-radius:14px;}
+            .messages{height:calc(100vh - 260px);}
+        }
     </style>
 </head>
 <body>
-<div class="app">
-    <div class="left">
-        <div class="logo">🔥 <span style="margin-left:6px">Chatter</span></div>
+    <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer(false)"></div>
+    <div class="drawer" id="drawer">
+        <div class="drawer-header">
+            <h3>Menü</h3>
+            <button class="iconBtn" onclick="toggleDrawer(false)">✕</button>
+    </div>
+
         <div class="search">
-            <input id="searchUsers" placeholder="Search users...">
-            <button class="iconBtn" onclick="if(role === 'ROLE_ADMIN') refreshUsers(); else refreshActiveUsersDisplay();">⟳</button>
+            <input id="searchUsers" placeholder="Kullanıcı ara..." oninput="filterUsers()">
+            <button class="iconBtn" onclick="role === 'ROLE_ADMIN' ? refreshUsers() : refreshActiveUsersDisplay()">⟳</button>
         </div>
+
+        <div class="pill" style="margin-top:6px;">Giriş yapan: <strong id="meLabel"></strong></div>
+
+        <h4 style="margin:10px 0 6px 0">Aktif Kullanıcılar</h4>
         <div class="userList" id="userList"></div>
-        <div style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px">Signed in as <strong id="meLabel"></strong></div>
-    </div>
 
-    <div class="center">
-        <div class="top">
-            <div>
-                <h2 style="margin:0">C-420 Chat</h2>
-                <div style="color:var(--muted);font-size:13px">General room — everyone can join</div>
-            </div>
-            <div class="topActions">
-                <button class="iconBtn" id="darkToggle">Dark</button>
-                <button class="iconBtn" onclick="openAdmin()" id="adminToggle" style="display:none">Admin</button>
-                <button class="iconBtn" onclick="logout()" title="Logout">🚪</button>
-            </div>
-        </div>
-
-        <div class="messages" id="messages"></div>
-
-        <div class="compose">
-            <input type="file" id="fileInput" class="fileInput" accept="image/*,application/pdf,text/plain" onchange="handleFileSelect(event)">
-            <button class="fileBtn" onclick="document.getElementById('fileInput').click()" title="Dosya/Fotoğraf Ekle">📎</button>
-            <input id="msgInput" placeholder="Write a message..." onkeydown="if(event.key==='Enter') sendPublic()">
-            <button onclick="sendPublic()">Send</button>
-        </div>
-        <div id="filePreview" class="filePreview" style="display:none"></div>
-    </div>
-
-    <div class="right">
         <div class="dmCard">
-            <div class="dmHeader">
-                <div><strong>Direct Messages</strong><div style="font-size:12px;color:var(--muted)">Click a user to open DM</div></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <strong>Direct Messages</strong>
                 <div class="pill" id="dmStatus">No DM</div>
             </div>
             <div class="dmList" id="dmList"></div>
-
-            <div style="height:8px"></div>
             <div class="dmConv" id="dmConv">Select a user to start private chat</div>
-
             <div class="dmCompose">
                 <input type="file" id="dmFileInput" class="fileInput" accept="image/*,application/pdf,text/plain" onchange="handleDMFileSelect(event)">
-                <button class="fileBtn" onclick="document.getElementById('dmFileInput').click()" title="Dosya/Fotoğraf Ekle" style="padding:8px">📎</button>
-                <input id="dmInput" placeholder="Message to user...">
-                <button id="dmSendBtn">Send</button>
+                <button class="fileBtn" onclick="document.getElementById('dmFileInput').click()" title="Dosya/Fotoğraf Ekle" style="min-width:44px;min-height:44px;">📎</button>
+                <input id="dmInput" placeholder="Mesaj yaz...">
+                <button id="dmSendBtn">Gönder</button>
             </div>
             <div id="dmFilePreview" class="filePreview" style="display:none"></div>
         </div>
 
         <div class="adminCard" id="adminCard" style="display:none">
-            <div style="display:flex;justify-content:space-between;align-items:center">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
                 <strong>Admin Panel</strong>
-                <div style="font-size:12px;color:var(--muted)">Manage users</div>
+                <div style="font-size:12px;color:var(--muted)">Kullanıcı yönetimi</div>
             </div>
-            <div style="margin-top:8px">
-                <button onclick="loadUsers()">Refresh</button>
+            <div style="margin-top:8px;">
+                <button class="iconBtn" style="width:100%;justify-content:center" onclick="loadUsers()">Yenile</button>
             </div>
-            <div style="margin-top:8px;overflow:auto;max-height:260px">
+            <div style="margin-top:8px;overflow:auto;max-height:260px;">
                 <table id="adminTable">
                     <thead><tr><th>ID</th><th>Username</th><th>Email</th><th>Verified</th><th>Banned</th><th>Actions</th></tr></thead>
                     <tbody></tbody>
@@ -125,24 +218,62 @@
             </div>
         </div>
     </div>
+
+    <div class="app">
+        <div class="topbar">
+            <div class="brand">🔥 C-420 Chat <small>Genel oda</small></div>
+            <div class="top-actions">
+                <button class="iconBtn" onclick="toggleDrawer(true)">☰</button>
+                <button class="iconBtn" onclick="openAdmin()" id="adminToggle" style="display:none">Admin</button>
+                <button class="iconBtn" onclick="logout()" title="Çıkış">🚪</button>
+            </div>
+        </div>
+
+        <div class="layout">
+            <div class="main">
+                <div class="room-title">
+                    <div>
+                        <h2>C-420 Chat</h2>
+                        <div class="subtitle">Herkesin katılabildiği genel oda</div>
+                    </div>
+                </div>
+
+                <div class="messages" id="messages"></div>
+
+                <div class="compose">
+                    <input type="file" id="fileInput" class="fileInput" accept="image/*,application/pdf,text/plain" onchange="handleFileSelect(event)">
+                    <button class="fileBtn" onclick="document.getElementById('fileInput').click()" title="Dosya/Fotoğraf Ekle">📎</button>
+                    <input id="msgInput" type="text" placeholder="Mesaj yaz..." onkeydown="if(event.key==='Enter') sendPublic()">
+                    <button class="primary" onclick="sendPublic()">Gönder</button>
+                </div>
+                <div id="filePreview" class="filePreview"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="fab">
+        <button onclick="toggleDrawer(true)" title="Kullanıcılar">👥</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
 <script>
+        const drawer = document.getElementById('drawer');
+        const drawerOverlay = document.getElementById('drawerOverlay');
+        function toggleDrawer(open){
+            if(open){ drawer.classList.add('open'); drawerOverlay.style.display='block'; }
+            else { drawer.classList.remove('open'); drawerOverlay.style.display='none'; }
+        }
+
     // URL parametrelerinden token, username ve role'ü al (OAuth2 için)
     const urlParams = new URLSearchParams(window.location.search);
     const urlToken = urlParams.get('token');
     const urlUsername = urlParams.get('username');
     const urlRole = urlParams.get('role');
-    
     if(urlToken && urlUsername){
-        // URLSearchParams otomatik olarak decode eder
         sessionStorage.setItem('token', urlToken);
         sessionStorage.setItem('username', urlUsername);
         sessionStorage.setItem('role', urlRole || 'ROLE_USER');
-        console.log('OAuth2 login successful, token saved');
-        // URL'yi temizle
         window.history.replaceState({}, document.title, window.location.pathname);
     }
     
@@ -150,35 +281,16 @@
     const me = sessionStorage.getItem('username');
     const role = sessionStorage.getItem('role') || 'ROLE_USER';
     const banned = sessionStorage.getItem('banned') === 'true';
-    
-    console.log('=== Chat Sayfası Yüklendi ===');
-    console.log('Token:', token ? 'Mevcut (' + token.substring(0, 20) + '...)' : 'YOK');
-    console.log('Username:', me);
-    console.log('Role:', role);
-    console.log('Banned:', banned);
-    console.log('=============================');
-    
-    if(!token || !me){ 
-        console.error('No token or username found, redirecting to login');
-        alert('Login first'); 
-        location.href='index.html' 
-    }
-    if(banned){ alert('You are banned!'); location.href='index.html' }
+        if(!token || !me){ alert('Önce giriş yapın'); location.href='index.html'; }
+        if(banned){ alert('Hesabınız yasaklı!'); location.href='index.html'; }
     document.getElementById('meLabel').innerText = me;
-    
-    // Admin paneli görünürlüğü
-    if(role === 'ROLE_ADMIN'){
-        document.getElementById('adminToggle').style.display='inline-block';
-        // Admin panel başlangıçta gizli, butona tıklayınca açılacak
-        console.log('Admin kullanıcı tespit edildi. Admin paneli aktif.');
-    } else {
-        console.log('Normal kullanıcı. Role:', role);
-    }
+        if(role === 'ROLE_ADMIN'){ document.getElementById('adminToggle').style.display='inline-flex'; }
 
     let stompClient = null;
     const usersCache = {};
     let activeDMUser = null;
     let activeUsersSet = new Set();
+        connectWS();
 
     function connectWS(){
         const sock = new SockJS('/ws?token=' + encodeURIComponent(token));
@@ -186,10 +298,8 @@
         stompClient.connect(
             { Authorization: 'Bearer ' + token },
             frame => {
-                console.log('WS Connected', frame);
                 subscribeChannels();
                 stompClient.send('/app/chat.addUser', {}, JSON.stringify({ sender: me, messageType: 'JOIN' }));
-                // Public chat geçmişini yükle
                 loadPublicChatHistory();
             },
             err => console.error('WS error', err)
@@ -198,23 +308,14 @@
 
     async function loadPublicChatHistory(){
         try{
-            const res = await fetch('/api/chat/history?limit=50', {
-                headers: { 'Authorization': 'Bearer ' + token }
-            });
+                const res = await fetch('/api/chat/history?limit=50', { headers: { 'Authorization': 'Bearer ' + token }});
             if(res.ok){
                 const messages = await res.json();
                 const box = document.getElementById('messages');
                 box.innerHTML = '';
-                // Mesajları ters sırada göster (en eski en üstte)
-                messages.reverse().forEach(m => {
-                    if(m.messageType === 'CHAT' && m.content){
-                        appendPublicMessage(m);
-                    }
-                });
-            }
-        }catch(e){
-            console.warn('Failed to load chat history:', e);
-        }
+                    messages.reverse().forEach(m => { if(m.messageType === 'CHAT') appendPublicMessage(m); });
+                }
+            }catch(e){ console.warn('Failed to load chat history:', e); }
     }
 
     function subscribeChannels(){
@@ -232,58 +333,40 @@
     
     function showErrorMessage(message){
         alert(message);
-        // Eğer ban mesajı ise, logout yap
         if(message.includes('yasaklandı') || message.includes('banned')){
             sessionStorage.clear();
-            setTimeout(() => {
-                window.location.href = 'index.html';
-            }, 2000);
+                setTimeout(() => { window.location.href = 'index.html'; }, 1500);
         }
     }
-
-    connectWS();
 
     function el(tag,cls,txt){ const e=document.createElement(tag); if(cls) e.className=cls; if(txt!==undefined) e.innerText=txt; return e; }
 
     function appendPublicMessage(m){
         const box = document.getElementById('messages');
         const row = el('div','msgRow');
+            const meta = el('div','msgMeta', (m.sender || 'system'));
         const bubble = el('div','msgBubble');
-        const meta = el('div','msgMeta', (m.sender || 'system') );
-        
         let contentHtml = '';
         if (m.fileUrl) {
             if (m.fileType && m.fileType.startsWith('image/')) {
-                contentHtml += `<div style="margin-bottom:8px"><img src="${m.fileUrl}" alt="${escapeHtml(m.fileName || '')}" style="max-width:300px;max-height:300px;border-radius:8px;cursor:pointer" onclick="window.open('${m.fileUrl}', '_blank')"></div>`;
+                    contentHtml += `<div style="margin-bottom:8px"><img src="${m.fileUrl}" alt="${escapeHtml(m.fileName || '')}" style="max-width:260px;max-height:260px;border-radius:10px;cursor:pointer" onclick="window.open('${m.fileUrl}', '_blank')"></div>`;
             } else {
-                contentHtml += `<div style="margin-bottom:8px;padding:8px;background:rgba(255,255,255,0.05);border-radius:6px"><a href="${m.fileUrl}" target="_blank" style="color:var(--accent);text-decoration:none">📄 ${escapeHtml(m.fileName || 'Dosya')}</a></div>`;
+                    contentHtml += `<div style="margin-bottom:8px;padding:8px;background:rgba(255,255,255,0.06);border-radius:8px"><a href="${m.fileUrl}" target="_blank" style="color:var(--accent);text-decoration:none">📄 ${escapeHtml(m.fileName || 'Dosya')}</a></div>`;
             }
         }
-        if (m.content) {
-            contentHtml += `<div style="font-size:14px">${escapeHtml(m.content)}</div>`;
-        }
-        
+            if (m.content) { contentHtml += `<div style="font-size:14px;line-height:1.4">${escapeHtml(m.content)}</div>`; }
         bubble.innerHTML = contentHtml;
-        row.appendChild(meta);
-        row.appendChild(bubble);
-        box.appendChild(row);
-        box.scrollTop = box.scrollHeight;
+            row.appendChild(meta); row.appendChild(bubble);
+            box.appendChild(row); box.scrollTop = box.scrollHeight;
     }
 
     function appendDMMessage(m){
         const isMine = m.sender === me;
         const conv = document.getElementById('dmConv');
-
-        if(!activeDMUser){
-            document.getElementById('dmStatus').innerText = 'New DM from ' + m.sender;
-            return;
-        }
-
+            if(!activeDMUser){ document.getElementById('dmStatus').innerText = 'New DM from ' + m.sender; return; }
         if(activeDMUser === m.sender || activeDMUser === m.receiver || isMine){
-            const b = el('div','msgBubble');
-            b.style.marginBottom='8px';
+                const b = el('div','msgBubble'); b.style.marginBottom='8px';
             b.style.background = isMine ? 'linear-gradient(90deg,#3dd9b6,#6b8cff)' : 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))';
-            
             let contentHtml = `<div style="font-size:13px"><strong>${escapeHtml(m.sender)}</strong></div>`;
             if (m.fileUrl) {
                 if (m.fileType && m.fileType.startsWith('image/')) {
@@ -292,39 +375,22 @@
                     contentHtml += `<div style="margin-bottom:8px;padding:6px;background:rgba(0,0,0,0.2);border-radius:4px"><a href="${m.fileUrl}" target="_blank" style="color:inherit;text-decoration:none">📄 ${escapeHtml(m.fileName || 'Dosya')}</a></div>`;
                 }
             }
-            if (m.content) {
-                contentHtml += `<div>${escapeHtml(m.content)}</div>`;
-            }
-            
-            b.innerHTML = contentHtml;
-            conv.appendChild(b);
-            conv.scrollTop = conv.scrollHeight;
+                if (m.content) { contentHtml += `<div>${escapeHtml(m.content)}</div>`; }
+                b.innerHTML = contentHtml; conv.appendChild(b); conv.scrollTop = conv.scrollHeight;
         } else {
             document.getElementById('dmStatus').innerText = 'New DM from ' + m.sender;
         }
     }
 
     let selectedFile = null;
-
     function handleFileSelect(event) {
         const file = event.target.files[0];
         if (!file) return;
-
-        // Dosya boyutu kontrolü (10MB)
-        if (file.size > 10 * 1024 * 1024) {
-            alert('Dosya boyutu çok büyük. Maksimum 10MB.');
-            event.target.value = '';
-            return;
+            if (file.size > 10 * 1024 * 1024) { alert('Dosya boyutu çok büyük. Maksimum 10MB.'); event.target.value = ''; return; }
+            selectedFile = file; showFilePreview(file);
         }
-
-        selectedFile = file;
-        showFilePreview(file);
-    }
-
     function showFilePreview(file) {
-        const preview = document.getElementById('filePreview');
-        preview.style.display = 'flex';
-        
+            const preview = document.getElementById('filePreview'); preview.style.display = 'flex';
         if (file.type.startsWith('image/')) {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -348,7 +414,6 @@
             `;
         }
     }
-
     function removeFile() {
         selectedFile = null;
         document.getElementById('fileInput').value = '';
@@ -358,213 +423,90 @@
     async function sendPublic(){
         const input = document.getElementById('msgInput');
         const text = input.value.trim();
-        
-        let fileUrl = null;
-        let fileName = null;
-        let fileType = null;
-
-        // Dosya varsa önce yükle
+            let fileUrl = null, fileName = null, fileType = null;
         if (selectedFile) {
             try {
-                console.log('Dosya yükleniyor:', selectedFile.name, selectedFile.size, selectedFile.type);
-                const formData = new FormData();
-                formData.append('file', selectedFile);
-
-                // Mobil tarayıcılar için Content-Type header'ını ekleme (FormData otomatik ayarlar)
-                const headers = {
-                    'Authorization': 'Bearer ' + token
-                };
-
-                const uploadRes = await fetch('/api/files/upload', {
-                    method: 'POST',
-                    headers: headers,
-                    body: formData
-                });
-
-                console.log('Upload response status:', uploadRes.status);
-
-                if (!uploadRes.ok) {
-                    const error = await uploadRes.text();
-                    console.error('Dosya yükleme hatası:', error);
-                    alert('Dosya yükleme hatası: ' + error);
-                    return;
-                }
-
+                    const formData = new FormData(); formData.append('file', selectedFile);
+                    const headers = { 'Authorization': 'Bearer ' + token };
+                    const uploadRes = await fetch('/api/files/upload', { method: 'POST', headers, body: formData });
+                    if (!uploadRes.ok) { const error = await uploadRes.text(); alert('Dosya yükleme hatası: ' + error); return; }
                 const uploadData = await uploadRes.json();
-                console.log('Dosya yükleme başarılı:', uploadData);
-                fileUrl = uploadData.fileUrl;
-                fileName = uploadData.fileName;
-                fileType = uploadData.fileType;
-            } catch (e) {
-                console.error('Dosya yükleme hatası:', e);
-                alert('Dosya yüklenirken hata oluştu: ' + e.message);
-                return;
+                    fileUrl = uploadData.fileUrl; fileName = uploadData.fileName; fileType = uploadData.fileType;
+                } catch (e) { alert('Dosya yüklenirken hata: ' + e.message); return; }
             }
-        }
-
-        // Mesaj veya dosya olmalı
-        if (!text && !fileUrl) {
-            console.warn('Mesaj veya dosya gerekli');
-            return;
-        }
-
-        const message = {
-            sender: me,
-            content: text || (fileUrl ? fileName : ''),
-            messageType: 'CHAT',
-            fileUrl: fileUrl,
-            fileName: fileName,
-            fileType: fileType
-        };
-
-        console.log('Mesaj gönderiliyor:', message);
-
-        // WebSocket bağlantısı kontrolü
-        if (!stompClient) {
-            console.error('WebSocket bağlantısı yok!');
-            alert('Bağlantı hatası. Lütfen sayfayı yenileyin.');
-            return;
-        }
-
-        try {
+            if (!text && !fileUrl) return;
+            const message = { sender: me, content: text || (fileUrl ? fileName : ''), messageType: 'CHAT', fileUrl, fileName, fileType };
+            if (!stompClient) { alert('Bağlantı hatası. Lütfen yenileyin.'); return; }
             stompClient.send('/app/chat.sendMessage', {}, JSON.stringify(message));
-            console.log('Mesaj başarıyla gönderildi');
-        } catch (e) {
-            console.error('Mesaj gönderme hatası:', e);
-            alert('Mesaj gönderilemedi: ' + e.message);
-            return;
-        }
-        
-        input.value = '';
-        removeFile();
+            input.value = ''; removeFile();
     }
 
     async function refreshUsers(){
-        if(role !== 'ROLE_ADMIN'){
-            console.warn('refreshUsers: Role kontrolü başarısız. Role:', role);
-            return;
-        }
-        console.log('refreshUsers: Admin kullanıcı tespit edildi, kullanıcılar yükleniyor...');
-        console.log('Token:', token ? 'Mevcut (' + token.substring(0, 20) + '...)' : 'YOK');
-        console.log('Role:', role);
-        try{
-            const res = await fetch('/auth/admin/users', { 
-                headers:{ 
-                    'Authorization': 'Bearer '+token,
-                    'Content-Type': 'application/json'
-                }
-            });
-            console.log('Response status:', res.status, res.statusText);
-            if(!res.ok) {
-                const errorText = await res.text();
-                console.error('API hatası:', res.status, errorText);
-                throw new Error(`API hatası: ${res.status} - ${errorText || res.statusText}`);
-            }
+            if(role !== 'ROLE_ADMIN') return;
+            try{
+                const res = await fetch('/auth/admin/users', { headers:{ 'Authorization': 'Bearer '+token,'Content-Type':'application/json' }});
+                if(!res.ok) { const errorText = await res.text(); throw new Error(errorText || res.statusText); }
             const arr = await res.json();
-            console.log('Kullanıcılar başarıyla yüklendi:', arr.length, 'kullanıcı');
-            buildUserList(arr);
-            buildAdminTable(arr);
-        }catch(e){ 
-            console.error('Admin panel yükleme hatası:', e);
-            alert('Admin panel yüklenemedi. Hata: ' + (e.message || 'Bilinmeyen hata') + '\n\nLütfen console\'u kontrol edin (F12).');
+                buildUserList(arr); buildAdminTable(arr);
+            }catch(e){ alert('Admin panel yüklenemedi: ' + e.message); }
         }
-    }
 
-    function updateActiveUsersList(activeUsersArray){
-        activeUsersSet = new Set(activeUsersArray);
-        refreshActiveUsersDisplay();
-    }
-
+        function updateActiveUsersList(activeUsersArray){ activeUsersSet = new Set(activeUsersArray); refreshActiveUsersDisplay(); }
     function refreshActiveUsersDisplay(){
-        const ul = document.getElementById('userList');
-        ul.innerHTML = '';
-        
-        // Önce aktif kullanıcıları göster
+            const ul = document.getElementById('userList'); ul.innerHTML = '';
         activeUsersSet.forEach(username => {
             if(username === me) return;
             const user = usersCache[username];
             const row = el('div','userRow');
             const left = el('div');
-            const statusText = user ? 
-                `${user.verified? 'Verified' : 'Unverified'} • ${user.banned? 'Banned' : 'Active'}` : 
-                'Active';
+                const statusText = user ? `${user.verified? 'Verified' : 'Unverified'} • ${user.banned? 'Banned' : 'Active'}` : 'Active';
             left.innerHTML = `<div class="username">${escapeHtml(username)} <span style="color:var(--accent-2);font-size:10px">●</span></div><div class="status">${statusText}</div>`;
             row.appendChild(left);
             const actions = el('div');
-            const dmBtn = el('button','iconBtn','DM');
-            dmBtn.onclick = ()=> openDM(username);
+                const dmBtn = el('button','iconBtn','DM'); dmBtn.style.padding='8px'; dmBtn.onclick = ()=> openDM(username);
             actions.appendChild(dmBtn);
             row.appendChild(actions);
             ul.appendChild(row);
         });
-        
-        // Eğer hiç aktif kullanıcı yoksa bilgi göster
         if(activeUsersSet.size <= 1){
-            const info = el('div');
-            info.style.color = 'var(--muted)';
-            info.style.fontSize = '12px';
-            info.style.textAlign = 'center';
-            info.style.padding = '12px';
-            info.innerText = 'No other active users';
-            ul.appendChild(info);
+                const info = el('div'); info.style.color = 'var(--muted)'; info.style.fontSize = '12px'; info.style.textAlign = 'center'; info.style.padding = '12px'; info.innerText = 'No other active users'; ul.appendChild(info);
+            }
         }
-    }
+        function filterUsers(){
+            const term = document.getElementById('searchUsers').value.toLowerCase();
+            const rows = document.querySelectorAll('#userList .userRow');
+            rows.forEach(r=>{
+                const name = r.querySelector('.username').innerText.toLowerCase();
+                r.style.display = name.includes(term) ? '' : 'none';
+            });
+        }
 
-    function buildUserList(arr){
-        // Tüm kullanıcıları cache'e ekle
-        arr.forEach(u=>{
-            usersCache[u.username]=u;
-        });
-        // Aktif kullanıcı listesini güncelle
-        refreshActiveUsersDisplay();
-    }
+        function buildUserList(arr){ arr.forEach(u=>{ usersCache[u.username]=u; }); refreshActiveUsersDisplay(); }
 
     async function openDM(username){
         activeDMUser = username;
         document.getElementById('dmStatus').innerText = 'DM: '+username;
-        document.getElementById('dmConv').innerHTML = '<div style="color:var(--muted)">Loading...</div>';
+            document.getElementById('dmConv').innerHTML = '<div style="color:var(--muted)">Yükleniyor...</div>';
         try{
-            const res = await fetch('/api/chat/dm/'+encodeURIComponent(username)+'?currentUser='+encodeURIComponent(me), {
-                headers:{ 'Authorization': 'Bearer '+token }
-            });
+                const res = await fetch('/api/chat/dm/'+encodeURIComponent(username)+'?currentUser='+encodeURIComponent(me), { headers:{ 'Authorization': 'Bearer '+token }});
             if(res.ok){
                 const msgs = await res.json();
-                const conv = document.getElementById('dmConv');
-                conv.innerHTML = '';
-                if(msgs.length === 0){
-                    conv.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px">No previous messages. Start the conversation!</div>';
-                } else {
-                    msgs.forEach(m=> appendDMMessage(m));
-                }
-            } else {
-                document.getElementById('dmConv').innerHTML = '<div style="color:var(--muted)">Failed to load messages</div>';
-            }
-        }catch(e){
-            console.error('Failed to load DM history:', e);
-            document.getElementById('dmConv').innerHTML = '<div style="color:var(--muted)">No previous messages</div>';
-        }
+                    const conv = document.getElementById('dmConv'); conv.innerHTML = '';
+                    if(msgs.length === 0){ conv.innerHTML = '<div style="color:var(--muted);text-align:center;padding:14px">Önceki mesaj yok. Sohbete başlayın!</div>'; }
+                    else { msgs.forEach(m=> appendDMMessage(m)); }
+                } else { document.getElementById('dmConv').innerHTML = '<div style="color:var(--muted)">Mesajlar alınamadı</div>'; }
+            }catch(e){ document.getElementById('dmConv').innerHTML = '<div style="color:var(--muted)">Mesajlar alınamadı</div>'; }
     }
 
     let selectedDMFile = null;
-
     function handleDMFileSelect(event) {
         const file = event.target.files[0];
         if (!file) return;
-
-        if (file.size > 10 * 1024 * 1024) {
-            alert('Dosya boyutu çok büyük. Maksimum 10MB.');
-            event.target.value = '';
-            return;
+            if (file.size > 10 * 1024 * 1024) { alert('Dosya boyutu çok büyük. Maksimum 10MB.'); event.target.value = ''; return; }
+            selectedDMFile = file; showDMFilePreview(file);
         }
-
-        selectedDMFile = file;
-        showDMFilePreview(file);
-    }
-
     function showDMFilePreview(file) {
-        const preview = document.getElementById('dmFilePreview');
-        preview.style.display = 'flex';
-        
+            const preview = document.getElementById('dmFilePreview'); preview.style.display = 'flex';
         if (file.type.startsWith('image/')) {
             const reader = new FileReader();
             reader.onload = (e) => {
@@ -588,7 +530,6 @@
             `;
         }
     }
-
     function removeDMFile() {
         selectedDMFile = null;
         document.getElementById('dmFileInput').value = '';
@@ -598,94 +539,30 @@
     async function sendDM(){
         const dmInput = document.getElementById('dmInput');
         const text = dmInput.value.trim();
-        if(!activeDMUser) { alert('Select a user first'); return; }
-        
-        let fileUrl = null;
-        let fileName = null;
-        let fileType = null;
-
-        // Dosya varsa önce yükle
+            if(!activeDMUser) { alert('Önce kullanıcı seçin'); return; }
+            let fileUrl = null, fileName = null, fileType = null;
         if (selectedDMFile) {
             try {
-                console.log('DM Dosya yükleniyor:', selectedDMFile.name, selectedDMFile.size, selectedDMFile.type);
-                const formData = new FormData();
-                formData.append('file', selectedDMFile);
-
-                // Mobil tarayıcılar için Content-Type header'ını ekleme (FormData otomatik ayarlar)
-                const headers = {
-                    'Authorization': 'Bearer ' + token
-                };
-
-                const uploadRes = await fetch('/api/files/upload', {
-                    method: 'POST',
-                    headers: headers,
-                    body: formData
-                });
-
-                console.log('DM Upload response status:', uploadRes.status);
-
-                if (!uploadRes.ok) {
-                    const error = await uploadRes.text();
-                    console.error('Dosya yükleme hatası:', error);
-                    alert('Dosya yükleme hatası: ' + error);
-                    return;
-                }
-
+                    const formData = new FormData(); formData.append('file', selectedDMFile);
+                    const headers = { 'Authorization': 'Bearer ' + token };
+                    const uploadRes = await fetch('/api/files/upload', { method: 'POST', headers, body: formData });
+                    if (!uploadRes.ok) { const error = await uploadRes.text(); alert('Dosya yükleme hatası: ' + error); return; }
                 const uploadData = await uploadRes.json();
-                console.log('DM Dosya yükleme başarılı:', uploadData);
-                fileUrl = uploadData.fileUrl;
-                fileName = uploadData.fileName;
-                fileType = uploadData.fileType;
-            } catch (e) {
-                console.error('Dosya yükleme hatası:', e);
-                alert('Dosya yüklenirken hata oluştu: ' + e.message);
-                return;
+                    fileUrl = uploadData.fileUrl; fileName = uploadData.fileName; fileType = uploadData.fileType;
+                } catch (e) { alert('Dosya yüklenirken hata: ' + e.message); return; }
             }
-        }
-
-        if (!text && !fileUrl) {
-            console.warn('DM Mesaj veya dosya gerekli');
-            return;
-        }
-
-        const payload = {
-            sender: me,
-            receiver: activeDMUser,
-            content: text || (fileUrl ? fileName : ''),
-            messageType: 'PRIVATE',
-            fileUrl: fileUrl,
-            fileName: fileName,
-            fileType: fileType
-        };
-
-        console.log('DM Mesaj gönderiliyor:', payload);
-
-        // WebSocket bağlantısı kontrolü
-        if (!stompClient) {
-            console.error('WebSocket bağlantısı yok!');
-            alert('Bağlantı hatası. Lütfen sayfayı yenileyin.');
-            return;
-        }
-
-        try {
+            if (!text && !fileUrl) return;
+            const payload = { sender: me, receiver: activeDMUser, content: text || (fileUrl ? fileName : ''), messageType: 'PRIVATE', fileUrl, fileName, fileType };
+            if (!stompClient) { alert('Bağlantı hatası.'); return; }
             stompClient.send('/app/privatemessage', {}, JSON.stringify(payload));
-            console.log('DM Mesaj başarıyla gönderildi');
-        } catch (e) {
-            console.error('DM Mesaj gönderme hatası:', e);
-            alert('Mesaj gönderilemedi: ' + e.message);
-            return;
-        }
-
-        dmInput.value = '';
-        removeDMFile();
+            dmInput.value = ''; removeDMFile();
     }
 
     document.getElementById('dmInput').addEventListener('keydown', e=>{ if(e.key==='Enter') sendDM(); });
     document.getElementById('dmSendBtn').addEventListener('click', sendDM);
 
     function buildAdminTable(arr){
-        const tbody = document.querySelector('#adminTable tbody');
-        tbody.innerHTML = '';
+            const tbody = document.querySelector('#adminTable tbody'); tbody.innerHTML = '';
         arr.forEach(u=>{
             const tr = document.createElement('tr');
             tr.innerHTML = `<td>${u.id}</td>
@@ -696,88 +573,48 @@
             <td>
                 ${u.banned ? `<button class="actionBtn unban" onclick="adminUnban(${u.id})">Unban</button>`
                 : `<button class="actionBtn ban" onclick="adminBan(${u.id})">Ban</button>`}
-                <button style="margin-left:6px" onclick="impersonate('${u.username}')">Impersonate</button>
+                    <button style="margin-left:6px" class="actionBtn" onclick="impersonate('${u.username}')">Impersonate</button>
             </td>`;
             tbody.appendChild(tr);
         });
     }
 
     async function adminBan(id){
-        const minutes = prompt('Ban for how many minutes? (0 for permanent)', '60');
-        if(minutes===null) return;
+            const minutes = prompt('Kaç dakika ban? (0 = kalıcı)', '60'); if(minutes===null) return;
         const m = parseInt(minutes||'0',10);
         const url = `/auth/admin/ban/${id}` + (m>0? `?minutes=${m}` : '');
-        const res = await fetch(url, { method:'POST', headers:{ 'Authorization':'Bearer '+token }});
-        if(res.ok){ alert('Banned'); loadUsers(); } else alert('Ban failed');
+            const res = await fetch(url, { method:'POST', headers:{ 'Authorization':'Bearer '+token }}); if(res.ok){ alert('Banlandı'); loadUsers(); } else alert('Ban başarısız');
     }
-
     async function adminUnban(id){
-        const res = await fetch(`/auth/admin/unban/${id}`, { method:'POST', headers:{ 'Authorization':'Bearer '+token }});
-        if(res.ok){ alert('Unbanned'); loadUsers(); } else alert('Unban failed');
+            const res = await fetch(`/auth/admin/unban/${id}`, { method:'POST', headers:{ 'Authorization':'Bearer '+token }}); if(res.ok){ alert('Ban kaldırıldı'); loadUsers(); } else alert('Unban başarısız');
     }
-
     function impersonate(username){
-        if(!confirm('Impersonate '+username+'?')) return;
-        sessionStorage.setItem('username', username);
-        location.reload();
+            if(!confirm(username+' kullanıcısı olarak devam edilsin mi?')) return;
+            sessionStorage.setItem('username', username); location.reload();
     }
 
     function openAdmin(){ 
-        console.log('openAdmin çağrıldı. Role:', role, 'Token:', token ? 'Mevcut' : 'YOK');
-        if(role !== 'ROLE_ADMIN'){
-            console.warn('Admin yetkisi yok. Mevcut role:', role);
-            alert('Admin yetkiniz yok! Mevcut role: ' + role);
-            return;
-        }
-        console.log('Admin paneli açılıyor...');
+            if(role !== 'ROLE_ADMIN'){ alert('Admin yetkiniz yok'); return; }
         document.getElementById('adminCard').style.display = 'block'; 
-        // Panel açıldığında kullanıcıları yükle
+            toggleDrawer(true);
         refreshUsers();
     }
     function escapeHtml(s){ if(!s) return ''; return s.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
-    async function loadUsers(){ 
-        if(role === 'ROLE_ADMIN'){
-            await refreshUsers(); 
-        }
-    }
+        async function loadUsers(){ if(role === 'ROLE_ADMIN'){ await refreshUsers(); } }
 
     async function logout(){
-        if(!confirm('Çıkış yapmak istediğinize emin misiniz?')) return;
-        
-        try{
-            // WebSocket bağlantısını kapat
-            if(stompClient){
-                stompClient.disconnect();
-            }
-            
-            // Backend'e logout isteği gönder
-            const res = await fetch('/auth/logout/'+encodeURIComponent(me), {
-                method:'POST',
-                headers:{ 'Authorization': 'Bearer '+token }
-            });
-            
-            // SessionStorage'ı temizle
-            sessionStorage.clear();
-            
-            // Index sayfasına yönlendir
-            window.location.href = 'index.html';
-        }catch(e){
-            console.error('Logout error:', e);
-            // Hata olsa bile sessionStorage'ı temizle ve yönlendir
-            sessionStorage.clear();
-            window.location.href = 'index.html';
+            if(!confirm('Çıkış yapılsın mı?')) return;
+            try{
+                if(stompClient){ stompClient.disconnect(); }
+                await fetch('/auth/logout/'+encodeURIComponent(me), { method:'POST', headers:{ 'Authorization': 'Bearer '+token }});
+            }catch(e){ console.error('Logout error:', e); }
+            sessionStorage.clear(); window.location.href = 'index.html';
         }
-    }
 
-    document.getElementById('darkToggle').onclick = () => { alert('Dark mode is default.'); }
-    
-    // Sadece admin ise kullanıcı listesini yükle (hata durumunda sessizce başarısız ol, kullanıcı paneli açtığında tekrar deneyecek)
     if(role === 'ROLE_ADMIN'){
-        console.log('Sayfa yüklendi, admin kullanıcı tespit edildi. Kullanıcılar yükleniyor...');
-        refreshUsers().catch(err => {
-            console.warn('Sayfa yüklenirken kullanıcılar yüklenemedi (normal, panel açıldığında tekrar denenecek):', err);
-        });
+            refreshUsers().catch(err => console.warn('Admin preload failed:', err));
     }
 </script>
 </body>
 </html>
+
