@@ -341,20 +341,22 @@
 
     function el(tag,cls,txt){ const e=document.createElement(tag); if(cls) e.className=cls; if(txt!==undefined) e.innerText=txt; return e; }
 
-    function appendPublicMessage(m){
+        function appendPublicMessage(m){
         const box = document.getElementById('messages');
         const row = el('div','msgRow');
             const meta = el('div','msgMeta', (m.sender || 'system'));
         const bubble = el('div','msgBubble');
         let contentHtml = '';
-        if (m.fileUrl) {
-            if (m.fileType && m.fileType.startsWith('image/')) {
+            const isImage = m.fileUrl && m.fileType && m.fileType.startsWith('image/');
+            const isFilenameOnly = m.fileUrl && m.fileName && m.content && m.content.trim() === m.fileName.trim();
+            if (m.fileUrl) {
+                if (isImage) {
                     contentHtml += `<div style="margin-bottom:8px"><img src="${m.fileUrl}" alt="${escapeHtml(m.fileName || '')}" style="max-width:260px;max-height:260px;border-radius:10px;cursor:pointer" onclick="window.open('${m.fileUrl}', '_blank')"></div>`;
             } else {
                     contentHtml += `<div style="margin-bottom:8px;padding:8px;background:rgba(255,255,255,0.06);border-radius:8px"><a href="${m.fileUrl}" target="_blank" style="color:var(--accent);text-decoration:none">📄 ${escapeHtml(m.fileName || 'Dosya')}</a></div>`;
             }
         }
-            if (m.content) { contentHtml += `<div style="font-size:14px;line-height:1.4">${escapeHtml(m.content)}</div>`; }
+            if (m.content && !(isImage && isFilenameOnly)) { contentHtml += `<div style="font-size:14px;line-height:1.4">${escapeHtml(m.content)}</div>`; }
         bubble.innerHTML = contentHtml;
             row.appendChild(meta); row.appendChild(bubble);
             box.appendChild(row); box.scrollTop = box.scrollHeight;
@@ -364,18 +366,20 @@
         const isMine = m.sender === me;
         const conv = document.getElementById('dmConv');
             if(!activeDMUser){ document.getElementById('dmStatus').innerText = 'New DM from ' + m.sender; return; }
-        if(activeDMUser === m.sender || activeDMUser === m.receiver || isMine){
+            if(activeDMUser === m.sender || activeDMUser === m.receiver || isMine){
                 const b = el('div','msgBubble'); b.style.marginBottom='8px';
             b.style.background = isMine ? 'linear-gradient(90deg,#3dd9b6,#6b8cff)' : 'linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))';
             let contentHtml = `<div style="font-size:13px"><strong>${escapeHtml(m.sender)}</strong></div>`;
-            if (m.fileUrl) {
-                if (m.fileType && m.fileType.startsWith('image/')) {
+                const isImage = m.fileUrl && m.fileType && m.fileType.startsWith('image/');
+                const isFilenameOnly = m.fileUrl && m.fileName && m.content && m.content.trim() === m.fileName.trim();
+                if (m.fileUrl) {
+                    if (isImage) {
                     contentHtml += `<div style="margin-bottom:8px"><img src="${m.fileUrl}" alt="${escapeHtml(m.fileName || '')}" style="max-width:200px;max-height:200px;border-radius:6px;cursor:pointer" onclick="window.open('${m.fileUrl}', '_blank')"></div>`;
                 } else {
                     contentHtml += `<div style="margin-bottom:8px;padding:6px;background:rgba(0,0,0,0.2);border-radius:4px"><a href="${m.fileUrl}" target="_blank" style="color:inherit;text-decoration:none">📄 ${escapeHtml(m.fileName || 'Dosya')}</a></div>`;
                 }
             }
-                if (m.content) { contentHtml += `<div>${escapeHtml(m.content)}</div>`; }
+                if (m.content && !(isImage && isFilenameOnly)) { contentHtml += `<div>${escapeHtml(m.content)}</div>`; }
                 b.innerHTML = contentHtml; conv.appendChild(b); conv.scrollTop = conv.scrollHeight;
         } else {
             document.getElementById('dmStatus').innerText = 'New DM from ' + m.sender;
